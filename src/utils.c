@@ -281,39 +281,56 @@ void util_toggle_fullscreen()
 
     memset(g_ddraw->primary->bnet_surface, 0, g_ddraw->width * g_ddraw->height);
 
-    if (g_ddraw->windowed)
+    if (g_ddraw->toggle_borderless)
     {
-        mouse_unlock();
-
-        g_config.window_state = g_ddraw->windowed = FALSE;
-        LONG style = GetWindowLong(g_ddraw->hwnd, GWL_STYLE);
-
-        real_SetWindowLongA(
-            g_ddraw->hwnd,
-            GWL_STYLE,
-            style & ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU));
-
-        dd_SetDisplayMode(g_ddraw->width, g_ddraw->height, g_ddraw->bpp, SDM_LEAVE_WINDOWED);
-        util_update_bnet_pos(0, 0);
-
-        mouse_lock();
-    }
-    else
-    {
-        mouse_unlock();
-        g_config.window_state = g_ddraw->windowed = TRUE;
-
-        if (g_ddraw->renderer == d3d9_render_main)
+        if (!g_ddraw->fullscreen)
         {
-            d3d9_reset();
+            mouse_unlock();
+
+            g_config.borderless_state = g_ddraw->fullscreen = TRUE;
+            dd_SetDisplayMode(g_ddraw->width, g_ddraw->height, g_ddraw->bpp, 0);
+
+            mouse_lock();
         }
         else
         {
-            ChangeDisplaySettings(NULL, g_ddraw->bnet_active ? CDS_FULLSCREEN : 0);
-        }
+            mouse_unlock();
 
-        dd_SetDisplayMode(g_ddraw->width, g_ddraw->height, g_ddraw->bpp, SDM_LEAVE_FULLSCREEN);
-        //mouse_lock();
+            g_config.borderless_state = g_ddraw->fullscreen = FALSE;
+            dd_SetDisplayMode(g_ddraw->width, g_ddraw->height, g_ddraw->bpp, 0);
+
+            //mouse_lock();
+        }
+    }
+    else 
+    {
+        if (g_ddraw->windowed)
+        {
+            mouse_unlock();
+
+            g_config.window_state = g_ddraw->windowed = FALSE;
+            dd_SetDisplayMode(g_ddraw->width, g_ddraw->height, g_ddraw->bpp, SDM_LEAVE_WINDOWED);
+            util_update_bnet_pos(0, 0);
+
+            mouse_lock();
+        }
+        else
+        {
+            mouse_unlock();
+            g_config.window_state = g_ddraw->windowed = TRUE;
+
+            if (g_ddraw->renderer == d3d9_render_main)
+            {
+                d3d9_reset();
+            }
+            else
+            {
+                ChangeDisplaySettings(NULL, g_ddraw->bnet_active ? CDS_FULLSCREEN : 0);
+            }
+
+            dd_SetDisplayMode(g_ddraw->width, g_ddraw->height, g_ddraw->bpp, SDM_LEAVE_FULLSCREEN);
+            //mouse_lock();
+        }
     }
 }
 

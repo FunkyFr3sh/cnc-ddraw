@@ -137,6 +137,7 @@ typedef struct CNCDDRAW
     int show_cursor_count;
     BOOL accurate_timers;
     BOOL resizable;
+    BOOL toggle_borderless;
     BOOL nonexclusive;
     BOOL fixpitch;
     int fixchilds;

@@ -586,7 +586,7 @@ LRESULT CALLBACK fake_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
         if (g_ddraw->hotkeys.toggle_fullscreen &&
             wParam == g_ddraw->hotkeys.toggle_fullscreen &&
-            !g_ddraw->fullscreen && 
+            (!g_ddraw->fullscreen || (g_ddraw->windowed && g_ddraw->toggle_borderless)) &&
             context_code && 
             !key_state &&
             g_ddraw->renderer != d3d9_render_main)
