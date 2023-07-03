@@ -450,9 +450,6 @@ HRESULT dd_SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwFl
         {
             border = FALSE;
 
-            g_config.window_rect.left = -32000;
-            g_config.window_rect.top = -32000;
-
             /* prevent OpenGL from going automatically into fullscreen exclusive mode */
             if (g_ddraw->renderer == ogl_render_main)
                 nonexclusive = TRUE;
@@ -671,6 +668,14 @@ HRESULT dd_SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwFl
         int cx = g_ddraw->mode.dmPelsHeight ? g_ddraw->mode.dmPelsHeight : g_ddraw->render.height;
         int x = (g_config.window_rect.left != -32000) ? g_config.window_rect.left : (cy / 2) - (g_ddraw->render.width / 2);
         int y = (g_config.window_rect.top != -32000) ? g_config.window_rect.top : (cx / 2) - (g_ddraw->render.height / 2);
+
+        if (nonexclusive)
+        {
+            x = y = 0;
+        }
+
+        if (IsIconic(g_ddraw->hwnd))
+            real_ShowWindow(g_ddraw->hwnd, SW_RESTORE);
 
         RECT dst = { x, y, g_ddraw->render.width + x, g_ddraw->render.height + y };
 

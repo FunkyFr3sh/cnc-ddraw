@@ -112,11 +112,6 @@ void cfg_load()
         g_ddraw->flip_limiter.tick_length = (DWORD)(flip_len + 0.5f);
     }
 
-    if ((g_ddraw->fullscreen = cfg_get_bool("fullscreen", FALSE)))
-    {
-        g_config.window_rect.left = g_config.window_rect.top = -32000;
-    }
-
     if (cfg_get_bool("singlecpu", TRUE))
     {
         SetProcessAffinityMask(GetCurrentProcess(), 1);
