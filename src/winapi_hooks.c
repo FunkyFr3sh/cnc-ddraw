@@ -428,24 +428,12 @@ LONG WINAPI fake_SetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLong)
         if (nIndex == GWL_STYLE)
             return 0;
 
-        if (nIndex == GWL_WNDPROC && g_ddraw->fixwndprochook)
+        if (nIndex == GWL_WNDPROC)
         {
-            if (dwNewLong == (LONG)compat_WndProc)
-            {
-                WNDPROC old = g_ddraw->wndproc = g_compat_wndproc;
-                //g_compat_wndproc = NULL;
-                return (LONG)old;
-            }
-            else
-            {
-                if (dwNewLong != (LONG)g_ddraw->wndproc)
-                {
-                    g_compat_wndproc = g_ddraw->wndproc;
-                    g_ddraw->wndproc = (WNDPROC)dwNewLong;
-                }
+            WNDPROC old = g_ddraw->wndproc;
+            g_ddraw->wndproc = (WNDPROC)dwNewLong;
 
-                return (LONG)compat_WndProc;
-            }
+            return (LONG)old;        
         }
     }
 
@@ -456,9 +444,9 @@ LONG WINAPI fake_GetWindowLongA(HWND hWnd, int nIndex)
 {
     if (g_ddraw && g_ddraw->hwnd == hWnd)
     {
-        if (nIndex == GWL_WNDPROC && g_ddraw->fixwndprochook)
+        if (nIndex == GWL_WNDPROC)
         {
-            return (LONG)compat_WndProc;
+            return (LONG)g_ddraw->wndproc;
         }
     }
 

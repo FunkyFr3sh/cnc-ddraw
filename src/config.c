@@ -43,7 +43,6 @@ void cfg_load()
     g_ddraw->nonexclusive = cfg_get_bool("nonexclusive", FALSE);
     g_ddraw->fixpitch = cfg_get_bool("fixpitch", FALSE);
     g_ddraw->fixchilds = cfg_get_int("fixchilds", FIX_CHILDS_DETECT_PAINT);
-    g_ddraw->fixwndprochook = cfg_get_bool("fixwndprochook", FALSE);
     g_ddraw->fixnotresponding = cfg_get_bool("fixnotresponding", FALSE);
     g_ddraw->locktopleft = cfg_get_bool("locktopleft", FALSE);
     g_ddraw->releasealt = cfg_get_bool("releasealt", FALSE);
@@ -719,17 +718,14 @@ static void cfg_create_ini()
             "\n"
             "; Grand Theft Auto\n"
             "[Grand Theft Auto]\n"
-            "fixwndprochook=true\n"
             "singlecpu=false\n"
             "\n"
             "; Grand Theft Auto: London 1969\n"
             "[gta_uk]\n"
-            "fixwndprochook=true\n"
             "singlecpu=false\n"
             "\n"
             "; Grand Theft Auto: London 1961\n"
             "[Gta_61]\n"
-            "fixwndprochook=true\n"
             "singlecpu=false\n"
             "\n"
             "; Heroes of Might and Magic II:  The Succession Wars\n"
@@ -745,7 +741,6 @@ static void cfg_create_ini()
             "; Invictus\n"
             "[Invictus]\n"
             "adjmouse=true\n"
-            "fixwndprochook=true\n"
             "renderer=opengl\n"
             "\n"
             "; Interstate 76\n"

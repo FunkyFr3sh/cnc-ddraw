@@ -140,7 +140,6 @@ typedef struct CNCDDRAW
     BOOL nonexclusive;
     BOOL fixpitch;
     int fixchilds;
-    BOOL fixwndprochook;
     BOOL fixnotresponding;
     BOOL locktopleft;
     BOOL d3d9linear;
