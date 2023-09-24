@@ -1235,11 +1235,11 @@ WORD TConfigForm::GetKeyCode(System::UnicodeString key)
 		return VK_PAUSE;
 	}
 
-	if (key == L"R " + ShortCutToText(VK_CONTROL)) {
+	if (key == L"R " + TranslateShortCut(ShortCutToText(VK_CONTROL))) {
 		return VK_RCONTROL;
 	}
 
-	return TextToShortCut(key);
+	return TextToShortCut(TranslateShortCut(key));
 }
 
 System::UnicodeString TConfigForm::GetKeyText(WORD key)
@@ -1253,14 +1253,55 @@ System::UnicodeString TConfigForm::GetKeyText(WORD key)
 	}
 
 	if (key == VK_RCONTROL) {
-		return L"R " + ShortCutToText(VK_CONTROL);
+		return L"R " + TranslateShortCut(ShortCutToText(VK_CONTROL));
 	}
 
 	if (key == VK_RSHIFT) {
-		return ShortCutToText(VK_SHIFT);
+		return TranslateShortCut(ShortCutToText(VK_SHIFT));
 	}
 
-	return ShortCutToText(key);
+	return TranslateShortCut(ShortCutToText(key));
+}
+
+System::UnicodeString TConfigForm::TranslateShortCut(System::UnicodeString text)
+{
+	/* Hack: Allows building the config tool on a german OS */
+	if (text == "Eingabe") return "Enter";
+	if (text == "Enter") return "Eingabe";
+	if (text == "Leer") return "Space";
+	if (text == "Space") return "Leer";
+	if (text == "BildAuf") return "PgUp";
+	if (text == "PgUp") return "BildAuf";
+	if (text == "BildAb") return "PgDn";
+	if (text == "PgDn") return "BildAb";
+	if (text == "Ende") return "End";
+	if (text == "End") return "Ende";
+	if (text == "Pos1") return "Home";
+	if (text == "Home") return "Pos1";
+	if (text == "Links") return "Left";
+	if (text == "Left") return "Links";
+	if (text == "Auf") return "Up";
+	if (text == "Up") return "Auf";
+	if (text == "Rechts") return "Right";
+	if (text == "Right") return "Rechts";
+	if (text == "Ab") return "Down";
+	if (text == "Down") return "Ab";
+	if (text == "Einfg") return "Ins";
+	if (text == "Ins") return "Einfg";
+	if (text == "UMSCHALT") return "Shift";
+	if (text == "Shift") return "UMSCHALT";
+	if (text == "STRG") return "Ctrl";
+	if (text == "Ctrl") return "STRG";
+	if (text == "ALT") return "Alt";
+	if (text == "Alt") return "ALT";
+	if (text == "CTRL") return "Ctrl";
+	if (text == "Ctrl") return "CTRL";
+	if (text == "ROLLEN-FESTSTELL") return "Scroll Lock";
+	if (text == "Scroll Lock") return "ROLLEN-FESTSTELL";
+	if (text == "FESTSTELL") return "Caps Lock";
+	if (text == "Caps Lock") return "FESTSTELL";
+
+	return text;
 }
 
 bool TConfigForm::GetBool(TIniFile *ini, System::UnicodeString key, bool defValue)
