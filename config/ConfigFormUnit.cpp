@@ -16,6 +16,7 @@
 TConfigForm *ConfigForm;
 bool Initialized;
 bool IsEnglish;
+System::UnicodeString KeyNames[256];
 
 /* Save previous settings so we don't override custom settings */
 int Maxfps;
@@ -1235,11 +1236,11 @@ WORD TConfigForm::GetKeyCode(System::UnicodeString key)
 		return VK_PAUSE;
 	}
 
-	if (key == L"R " + TranslateShortCut(ShortCutToText(VK_CONTROL))) {
+	if (key == L"R " + KeyToText(VK_CONTROL)) {
 		return VK_RCONTROL;
 	}
 
-	return TextToShortCut(TranslateShortCut(key));
+	return TextToKey(key);
 }
 
 System::UnicodeString TConfigForm::GetKeyText(WORD key)
@@ -1253,55 +1254,57 @@ System::UnicodeString TConfigForm::GetKeyText(WORD key)
 	}
 
 	if (key == VK_RCONTROL) {
-		return L"R " + TranslateShortCut(ShortCutToText(VK_CONTROL));
+		return L"R " + KeyToText(VK_CONTROL);
 	}
 
 	if (key == VK_RSHIFT) {
-		return TranslateShortCut(ShortCutToText(VK_SHIFT));
+		return KeyToText(VK_SHIFT);
 	}
 
-	return TranslateShortCut(ShortCutToText(key));
+	return KeyToText(key);
 }
 
-System::UnicodeString TConfigForm::TranslateShortCut(System::UnicodeString text)
+WORD TConfigForm::TextToKey(System::UnicodeString Text)
 {
-	/* Hack: Allows building the config tool on a german OS */
-	if (text == "Eingabe") return "Enter";
-	if (text == "Enter") return "Eingabe";
-	if (text == "Leer") return "Space";
-	if (text == "Space") return "Leer";
-	if (text == "BildAuf") return "PgUp";
-	if (text == "PgUp") return "BildAuf";
-	if (text == "BildAb") return "PgDn";
-	if (text == "PgDn") return "BildAb";
-	if (text == "Ende") return "End";
-	if (text == "End") return "Ende";
-	if (text == "Pos1") return "Home";
-	if (text == "Home") return "Pos1";
-	if (text == "Links") return "Left";
-	if (text == "Left") return "Links";
-	if (text == "Auf") return "Up";
-	if (text == "Up") return "Auf";
-	if (text == "Rechts") return "Right";
-	if (text == "Right") return "Rechts";
-	if (text == "Ab") return "Down";
-	if (text == "Down") return "Ab";
-	if (text == "Einfg") return "Ins";
-	if (text == "Ins") return "Einfg";
-	if (text == "UMSCHALT") return "Shift";
-	if (text == "Shift") return "UMSCHALT";
-	if (text == "STRG") return "Ctrl";
-	if (text == "Ctrl") return "STRG";
-	if (text == "ALT") return "Alt";
-	if (text == "Alt") return "ALT";
-	if (text == "CTRL") return "Ctrl";
-	if (text == "Ctrl") return "CTRL";
-	if (text == "ROLLEN-FESTSTELL") return "Scroll Lock";
-	if (text == "Scroll Lock") return "ROLLEN-FESTSTELL";
-	if (text == "FESTSTELL") return "Caps Lock";
-	if (text == "Caps Lock") return "FESTSTELL";
+	for (WORD i = 0; i < 256; i++) {
+		if (KeyNames[i] == Text) {
+			return i;
+		}
+	}
 
-	return text;
+	return 0;
+}
+
+System::UnicodeString TConfigForm::KeyToText(WORD key)
+{
+	WCHAR keyName[256] = {};
+
+	UINT scanCode = MapVirtualKeyW(key, MAPVK_VK_TO_VSC);
+
+	switch (key) {
+		case VK_LEFT:
+		case VK_UP:
+		case VK_RIGHT:
+		case VK_DOWN:
+		case VK_PRIOR:
+		case VK_NEXT:
+		case VK_END:
+		case VK_HOME:
+		case VK_INSERT:
+		case VK_DELETE:
+		case VK_DIVIDE:
+		case VK_NUMLOCK:
+		{
+			scanCode |= 0x100;
+			break;
+		}
+	}
+
+	GetKeyNameTextW(scanCode << 16, keyName, sizeof(keyName) / sizeof(WCHAR));
+
+	KeyNames[(BYTE)key] = keyName;
+
+	return KeyNames[(BYTE)key];
 }
 
 bool TConfigForm::GetBool(TIniFile *ini, System::UnicodeString key, bool defValue)
