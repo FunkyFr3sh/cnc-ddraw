@@ -1226,21 +1226,27 @@ void __fastcall TConfigForm::HotkeyEdtKeyUp(TObject *Sender, WORD &Key, TShiftSt
 	SaveSettings();
 }
 
-WORD TConfigForm::GetKeyCode(System::UnicodeString key)
+WORD TConfigForm::GetKeyCode(System::UnicodeString text)
 {
-	if (key == L"PrtScn") {
+	if (text == L"PrtScn") {
 		return VK_SNAPSHOT;
 	}
 
-	if (key == L"Pause_") {
+	if (text == L"Pause_") {
 		return VK_PAUSE;
 	}
 
-	if (key == L"R " + KeyToText(VK_CONTROL)) {
+	if (text == L"R " + KeyToText(VK_CONTROL)) {
 		return VK_RCONTROL;
 	}
 
-	return TextToKey(key);
+	for (WORD i = 0; i < 256; i++) {
+		if (KeyNames[i] == text) {
+			return i;
+		}
+	}
+
+	return 0;
 }
 
 System::UnicodeString TConfigForm::GetKeyText(WORD key)
@@ -1264,21 +1270,8 @@ System::UnicodeString TConfigForm::GetKeyText(WORD key)
 	return KeyToText(key);
 }
 
-WORD TConfigForm::TextToKey(System::UnicodeString Text)
-{
-	for (WORD i = 0; i < 256; i++) {
-		if (KeyNames[i] == Text) {
-			return i;
-		}
-	}
-
-	return 0;
-}
-
 System::UnicodeString TConfigForm::KeyToText(WORD key)
 {
-	WCHAR keyName[256] = {};
-
 	UINT scanCode = MapVirtualKeyW(key, MAPVK_VK_TO_VSC);
 
 	switch (key) {
@@ -1300,6 +1293,7 @@ System::UnicodeString TConfigForm::KeyToText(WORD key)
 		}
 	}
 
+	WCHAR keyName[256] = {};
 	GetKeyNameTextW(scanCode << 16, keyName, sizeof(keyName) / sizeof(WCHAR));
 
 	KeyNames[(BYTE)key] = keyName;

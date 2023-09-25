@@ -123,8 +123,7 @@ private:	// Benutzer-Deklarationen
 	bool GetBool(TIniFile *ini, System::UnicodeString key, bool defValue);
 	void ApplyTranslation(TIniFile *ini);
 	System::UnicodeString GetKeyText(WORD key);
-	WORD GetKeyCode(System::UnicodeString key);
-	WORD TextToKey(System::UnicodeString Text);
+	WORD GetKeyCode(System::UnicodeString text);
 	System::UnicodeString KeyToText(WORD key);
 public:		// Benutzer-Deklarationen
 	__fastcall TConfigForm(TComponent* Owner);
