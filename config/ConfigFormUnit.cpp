@@ -941,15 +941,19 @@ void TConfigForm::SaveSettings()
 		ini->WriteString("ddraw", "windowed", "false");
 		ini->WriteString("ddraw", "fullscreen", "false");
 		ini->WriteString("ddraw", "toggle_borderless", "false");
+		ini->WriteString("ddraw", "toggle_upscaled", "false");
 		break;
 	case 1:
 		ini->WriteString("ddraw", "windowed", "false");
 		ini->WriteString("ddraw", "fullscreen", "true");
+		ini->WriteString("ddraw", "toggle_borderless", "false");
+		ini->WriteString("ddraw", "toggle_upscaled", "true");
 		break;
 	case 2:
 		ini->WriteString("ddraw", "windowed", "true");
 		ini->WriteString("ddraw", "fullscreen", "true");
 		ini->WriteString("ddraw", "toggle_borderless", "true");
+		ini->WriteString("ddraw", "toggle_upscaled", "false");
 		break;
 	case 3:
 		ini->WriteString("ddraw", "windowed", "true");
