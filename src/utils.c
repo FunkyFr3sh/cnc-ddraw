@@ -287,7 +287,7 @@ void util_toggle_fullscreen()
         {
             mouse_unlock();
 
-            g_config.borderless_state = g_ddraw->fullscreen = TRUE;
+            g_config.upscaled_state = g_config.fullscreen = TRUE;
             dd_SetDisplayMode(g_ddraw->width, g_ddraw->height, g_ddraw->bpp, 0);
 
             mouse_lock();
@@ -296,7 +296,7 @@ void util_toggle_fullscreen()
         {
             mouse_unlock();
 
-            g_config.borderless_state = g_ddraw->fullscreen = FALSE;
+            g_config.upscaled_state = g_config.fullscreen = FALSE;
             dd_SetDisplayMode(g_ddraw->width, g_ddraw->height, g_ddraw->bpp, 0);
 
             //mouse_lock();
@@ -308,7 +308,12 @@ void util_toggle_fullscreen()
         {
             mouse_unlock();
 
-            g_config.window_state = g_ddraw->windowed = FALSE;
+            if (g_config.toggle_upscaled)
+            {
+                g_config.upscaled_state = g_config.fullscreen = TRUE;
+            }
+
+            g_config.window_state = g_config.windowed = FALSE;
             dd_SetDisplayMode(g_ddraw->width, g_ddraw->height, g_ddraw->bpp, SDM_LEAVE_WINDOWED);
             util_update_bnet_pos(0, 0);
 
@@ -317,7 +322,13 @@ void util_toggle_fullscreen()
         else
         {
             mouse_unlock();
-            g_config.window_state = g_ddraw->windowed = TRUE;
+
+            if (g_config.toggle_upscaled)
+            {
+                g_config.upscaled_state = g_config.fullscreen = FALSE;
+            }
+
+            g_config.window_state = g_config.windowed = TRUE;
 
             if (g_ddraw->renderer == d3d9_render_main)
             {
