@@ -734,6 +734,7 @@ HWND WINAPI fake_CreateWindowExA(
             g_ddraw->bnet_active = TRUE;
             SetTimer(g_ddraw->hwnd, IDT_TIMER_REDRAW_BNET, 200, (TIMERPROC)NULL);
             mouse_unlock();
+            ReleaseCapture();
         }
 
         POINT pt = { 0, 0 };
