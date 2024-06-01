@@ -1,7 +1,6 @@
 #ifndef WINAPI_HOOKS_H
 #define WINAPI_HOOKS_H
 
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 
@@ -65,6 +64,8 @@ HWND WINAPI fake_CreateWindowExA(
 
 HRESULT WINAPI fake_CoCreateInstance(
     REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID* ppv);
+
+MCIERROR WINAPI fake_mciSendCommandA(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam);
 
 LPTOP_LEVEL_EXCEPTION_FILTER WINAPI fake_SetUnhandledExceptionFilter(
     LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter);

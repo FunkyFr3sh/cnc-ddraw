@@ -1,3 +1,4 @@
+#include <windows.h>
 #include <initguid.h>
 #include "IDirectDraw.h"
 #include "IDirect3D.h"

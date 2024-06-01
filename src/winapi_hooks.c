@@ -1324,7 +1324,36 @@ HRESULT WINAPI fake_CoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD
         }
     }
 
-    return real_CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
+    /* These dlls must be hooked for cutscene uscaling and windowed mode */
+    HMODULE quartz_dll = GetModuleHandleA("quartz");
+    HMODULE msvfw32_dll = GetModuleHandleA("msvfw32");
+
+    HRESULT result = real_CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
+
+    if ((!quartz_dll && GetModuleHandleA("quartz")) ||
+        (!msvfw32_dll && GetModuleHandleA("msvfw32")))
+    {
+        hook_init(FALSE);
+    }
+
+    return result;
+}
+
+MCIERROR WINAPI fake_mciSendCommandA(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
+{
+    /* These dlls must be hooked for cutscene uscaling and windowed mode */
+    HMODULE quartz_dll = GetModuleHandleA("quartz");
+    HMODULE msvfw32_dll = GetModuleHandleA("msvfw32");
+
+    MCIERROR result = real_mciSendCommandA(IDDevice, uMsg, fdwCommand, dwParam);
+
+    if ((!quartz_dll && GetModuleHandleA("quartz")) ||
+        (!msvfw32_dll && GetModuleHandleA("msvfw32")))
+    {
+        hook_init(FALSE);
+    }
+
+    return result;
 }
 
 LPTOP_LEVEL_EXCEPTION_FILTER WINAPI fake_SetUnhandledExceptionFilter(
