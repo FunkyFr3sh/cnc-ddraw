@@ -37,6 +37,7 @@ DWORD WINAPI gdi_render_main(void)
     Sleep(500);
 
     fpsl_init();
+    SetStretchBltMode(g_ddraw.render.hdc, COLORONCOLOR);
 
     DWORD timeout = g_config.minfps > 0 ? g_ddraw.minfps_tick_len : INFINITE;
 
