@@ -887,6 +887,9 @@ static void ogl_render()
         (g_config.minfps < 0 || WaitForSingleObject(g_ddraw.render.sem, timeout) != WAIT_FAILED) &&
         g_ddraw.render.run)
     {
+        if (InterlockedDecrement(&g_ddraw.zoom.frame_skip) > 0)
+            continue;
+
 #if _DEBUG
         dbg_draw_frame_info_start();
 #endif

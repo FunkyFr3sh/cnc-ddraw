@@ -152,6 +152,7 @@ void DDEnableZoom()
     TRACE("%s [%p]\n", __FUNCTION__, _ReturnAddress());
 
     g_ddraw.zoom.enabled = TRUE;
+    InterlockedExchange(&g_ddraw.zoom.frame_skip, 20);
 }
 
 BOOL DDIsWindowed()

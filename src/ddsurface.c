@@ -418,6 +418,9 @@ HRESULT dds_Blt(
 
     if ((This->caps & DDSCAPS_PRIMARYSURFACE) && g_ddraw.ref && g_ddraw.render.run)
     {
+        if (!(dwFlags & DDBLT_COLORFILL))
+            InterlockedExchange(&g_ddraw.zoom.frame_skip, 0);
+
         InterlockedExchange(&g_ddraw.render.surface_updated, TRUE);
 
         if (!(This->flags & DDSD_BACKBUFFERCOUNT) || This->last_flip_tick + FLIP_REDRAW_TIMEOUT < timeGetTime())

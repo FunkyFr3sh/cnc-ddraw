@@ -168,6 +168,7 @@ typedef struct CNCDDRAW
 
     struct
     {
+        LONG frame_skip;
         BOOL enabled;
     } zoom;
 } CNCDDRAW;
