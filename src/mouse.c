@@ -38,12 +38,35 @@ void mouse_lock()
         real_MapWindowPoints(g_ddraw.hwnd, HWND_DESKTOP, (LPPOINT)&rc, 2);
         OffsetRect(&rc, g_ddraw.render.viewport.x, g_ddraw.render.viewport.y);
 
-        int cur_x = InterlockedExchangeAdd((LONG*)&g_ddraw.cursor.x, 0);
-        int cur_y = InterlockedExchangeAdd((LONG*)&g_ddraw.cursor.y, 0);
+        POINT pt;
+        real_GetCursorPos(&pt);
+
+        if (!g_config.windowed || real_ScreenToClient(g_ddraw.hwnd, &pt))
+        {
+            if (pt.x > g_ddraw.render.viewport.x + g_ddraw.render.viewport.width ||
+                pt.x < g_ddraw.render.viewport.x ||
+                pt.y > g_ddraw.render.viewport.y + g_ddraw.render.viewport.height ||
+                pt.y < g_ddraw.render.viewport.y)
+            {
+                pt.x = g_ddraw.width / 2;
+                pt.y = g_ddraw.height / 2;
+            }
+            else
+            {
+                pt.x = (DWORD)((pt.x - g_ddraw.render.viewport.x) * g_ddraw.mouse.unscale_x);
+                pt.y = (DWORD)((pt.y - g_ddraw.render.viewport.y) * g_ddraw.mouse.unscale_y);
+            }
+
+            pt.x = min(pt.x, g_ddraw.width - 1);
+            pt.y = min(pt.y, g_ddraw.height - 1);
+
+            InterlockedExchange((LONG*)&g_ddraw.cursor.x, pt.x);
+            InterlockedExchange((LONG*)&g_ddraw.cursor.y, pt.y);
+        }
 
         real_SetCursorPos(
-            g_config.adjmouse ? (int)(rc.left + (cur_x * g_ddraw.mouse.scale_x)) : rc.left + cur_x,
-            g_config.adjmouse ? (int)(rc.top + (cur_y * g_ddraw.mouse.scale_y)) : rc.top + cur_y);
+            g_config.adjmouse ? (int)(rc.left + (pt.x * g_ddraw.mouse.scale_x)) : rc.left + pt.x,
+            g_config.adjmouse ? (int)(rc.top + (pt.y * g_ddraw.mouse.scale_y)) : rc.top + pt.y);
 
         CopyRect(&rc, &g_ddraw.mouse.rc);
         real_MapWindowPoints(g_ddraw.hwnd, HWND_DESKTOP, (LPPOINT)&rc, 2);

@@ -642,8 +642,8 @@ HRESULT dd_SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwFl
     g_ddraw.height = dwHeight;
     g_ddraw.bpp = dwBPP;
 
-    InterlockedExchange((LONG*)&g_ddraw.cursor.x, dwWidth / 2);
-    InterlockedExchange((LONG*)&g_ddraw.cursor.y, dwHeight / 2);
+    //InterlockedExchange((LONG*)&g_ddraw.cursor.x, dwWidth / 2);
+    //InterlockedExchange((LONG*)&g_ddraw.cursor.y, dwHeight / 2);
 
     BOOL border = g_config.border;
     BOOL nonexclusive = FALSE;
