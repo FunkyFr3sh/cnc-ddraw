@@ -52,7 +52,7 @@ BOOL ogl_create()
 
 DWORD WINAPI ogl_render_main(void)
 {
-    Sleep(250);
+    //Sleep(250);
     g_ogl.got_error = g_ogl.use_opengl = FALSE;
     GLenum err = GL_NO_ERROR;
     BOOL made_current = FALSE;
@@ -91,8 +91,8 @@ DWORD WINAPI ogl_render_main(void)
         GL_CHECK(ogl_init_shader1_program());
         GL_CHECK(ogl_init_shader2_program());
 
-        GL_CHECK(g_ogl.got_error = g_ogl.got_error || !ogl_texture_upload_test());
-        GL_CHECK(g_ogl.got_error = g_ogl.got_error || !ogl_shader_test());
+        //GL_CHECK(g_ogl.got_error = g_ogl.got_error || !ogl_texture_upload_test());
+        //GL_CHECK(g_ogl.got_error = g_ogl.got_error || !ogl_shader_test());
         g_ogl.got_error = g_ogl.got_error || (err = glGetError()) != GL_NO_ERROR;
         g_ogl.use_opengl = (g_ogl.main_program || g_ddraw.bpp == 16 || g_ddraw.bpp == 32) && !g_ogl.got_error;
 
