@@ -96,8 +96,8 @@ HOOKLIST g_hook_hooklist[] =
             { "ShowWindow", (PROC)fake_ShowWindow, (PROC*)&real_ShowWindow, 0 },
             { "GetTopWindow", (PROC)fake_GetTopWindow, (PROC*)&real_GetTopWindow, 0 },
             { "GetForegroundWindow", (PROC)fake_GetForegroundWindow, (PROC*)&real_GetForegroundWindow, 0 },
-            { "PeekMessageA", (PROC)fake_PeekMessageA, (PROC*)&real_PeekMessageA, 0 },
-            { "GetMessageA", (PROC)fake_GetMessageA, (PROC*)&real_GetMessageA, 0 },
+            //{ "PeekMessageA", (PROC)fake_PeekMessageA, (PROC*)&real_PeekMessageA, 0 },
+            //{ "GetMessageA", (PROC)fake_GetMessageA, (PROC*)&real_GetMessageA, 0 },
             { "GetWindowPlacement", (PROC)fake_GetWindowPlacement, (PROC*)&real_GetWindowPlacement, 0 },
             { "EnumDisplaySettingsA", (PROC)fake_EnumDisplaySettingsA, (PROC*)&real_EnumDisplaySettingsA, 0 },
             { "GetKeyState", (PROC)fake_GetKeyState, (PROC*)&real_GetKeyState, 0 },
@@ -161,7 +161,7 @@ HOOKLIST g_hook_hooklist[] =
     {
         "kernel32.dll",
         {
-            { "LoadLibraryA", (PROC)fake_LoadLibraryA, (PROC*)&real_LoadLibraryA, HOOK_SKIP_2 },
+            //{ "LoadLibraryA", (PROC)fake_LoadLibraryA, (PROC*)&real_LoadLibraryA, HOOK_SKIP_2 },
             { "LoadLibraryW", (PROC)fake_LoadLibraryW, (PROC*)&real_LoadLibraryW, HOOK_SKIP_2 },
             { "LoadLibraryExA", (PROC)fake_LoadLibraryExA, (PROC*)&real_LoadLibraryExA, HOOK_SKIP_2 },
             { "LoadLibraryExW", (PROC)fake_LoadLibraryExW, (PROC*)&real_LoadLibraryExW, HOOK_SKIP_2 },
