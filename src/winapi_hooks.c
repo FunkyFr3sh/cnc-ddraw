@@ -822,6 +822,46 @@ BOOL WINAPI fake_EnumDisplaySettingsA(LPCSTR lpszDeviceName, DWORD iModeNum, DEV
     return result;
 }
 
+BOOL WINAPI fake_ValidateRect(HWND hWnd, const RECT* lpRect)
+{
+    if (!g_ddraw.ref || !g_ddraw.width || !g_ddraw.hwnd || hWnd != g_ddraw.hwnd || !lpRect)
+        return real_ValidateRect(hWnd, lpRect);
+
+    RECT dst_rc;
+
+    dst_rc.left = (LONG)(roundf(lpRect->left * g_ddraw.render.scale_w));
+    dst_rc.top = (LONG)(roundf(lpRect->top * g_ddraw.render.scale_h));
+    dst_rc.bottom = (LONG)(roundf(lpRect->bottom * g_ddraw.render.scale_h));
+    dst_rc.right = (LONG)(roundf(lpRect->right * g_ddraw.render.scale_w));
+
+    OffsetRect(
+        &dst_rc,
+        g_ddraw.render.viewport.x,
+        g_ddraw.render.viewport.y);
+
+    return real_ValidateRect(hWnd, lpRect);
+}
+
+BOOL WINAPI fake_InvalidateRect(HWND hWnd, const RECT* lpRect, BOOL bErase)
+{
+    if (!g_ddraw.ref || !g_ddraw.width || !g_ddraw.hwnd || hWnd != g_ddraw.hwnd || !lpRect)
+        return real_InvalidateRect(hWnd, lpRect, bErase);
+
+    RECT dst_rc;
+
+    dst_rc.left = (LONG)(roundf(lpRect->left * g_ddraw.render.scale_w));
+    dst_rc.top = (LONG)(roundf(lpRect->top * g_ddraw.render.scale_h));
+    dst_rc.bottom = (LONG)(roundf(lpRect->bottom * g_ddraw.render.scale_h));
+    dst_rc.right = (LONG)(roundf(lpRect->right * g_ddraw.render.scale_w));
+
+    OffsetRect(
+        &dst_rc,
+        g_ddraw.render.viewport.x,
+        g_ddraw.render.viewport.y);
+
+    return real_InvalidateRect(hWnd, &dst_rc, bErase);
+}
+
 SHORT WINAPI fake_GetKeyState(int nVirtKey)
 {
     if (g_config.windowed && g_ddraw.ref && g_ddraw.hwnd && !util_in_foreground())
