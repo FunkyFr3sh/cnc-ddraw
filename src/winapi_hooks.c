@@ -839,7 +839,7 @@ BOOL WINAPI fake_ValidateRect(HWND hWnd, const RECT* lpRect)
         g_ddraw.render.viewport.x,
         g_ddraw.render.viewport.y);
 
-    return real_ValidateRect(hWnd, lpRect);
+    return real_ValidateRect(hWnd, &dst_rc);
 }
 
 BOOL WINAPI fake_InvalidateRect(HWND hWnd, const RECT* lpRect, BOOL bErase)
