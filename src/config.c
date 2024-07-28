@@ -795,6 +795,7 @@ static void cfg_create_ini()
             "; Emperor: Rise of the Middle Kingdom\n"
             "[Emperor]\n"
             "nonexclusive=true\n"
+            "adjmouse=true\n"
             "\n"
             "; Enemy Infestation\n"
             "[EI]\n"
