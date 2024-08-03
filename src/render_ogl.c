@@ -41,6 +41,44 @@ BOOL ogl_create()
         g_ogl.hwnd = g_ddraw.hwnd;
         g_ogl.hdc = g_ddraw.render.hdc;
 
+        GLenum err = GL_NO_ERROR;
+        BOOL made_current = FALSE;
+
+        for (int i = 0; i < 5; i++)
+        {
+            if ((made_current = xwglMakeCurrent(g_ogl.hdc, g_ogl.context)))
+                break;
+
+            Sleep(50);
+        }
+
+        if (made_current && (err = glGetError()) == GL_NO_ERROR)
+        {
+            GL_CHECK(oglu_init());
+
+            TRACE("+--OpenGL-----------------------------------------\n");
+            TRACE("| GL_VERSION:                  %s\n", glGetString(GL_VERSION));
+            TRACE("| GL_VENDOR:                   %s\n", glGetString(GL_VENDOR));
+            TRACE("| GL_RENDERER:                 %s\n", glGetString(GL_RENDERER));
+            TRACE("| GL_SHADING_LANGUAGE_VERSION: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+            TRACE("+------------------------------------------------\n");
+
+            GL_CHECK(g_ogl.context = ogl_create_core_context(g_ogl.hdc));
+        }
+        else
+        {
+            TRACE("OpenGL error %08x, GetLastError %lu (xwglMakeCurrent())\n", err, GetLastError());
+            ogl_check_error("xwglMakeCurrent()");
+        }
+
+        for (int i = 0; i < 5; i++)
+        {
+            if (xwglMakeCurrent(NULL, NULL))
+                break;
+
+            Sleep(50);
+        }
+
         return TRUE;
     }
 
@@ -68,15 +106,6 @@ DWORD WINAPI ogl_render_main(void)
     if (made_current && (err = glGetError()) == GL_NO_ERROR)
     {
         GL_CHECK(oglu_init());
-
-        TRACE("+--OpenGL-----------------------------------------\n");
-        TRACE("| GL_VERSION:                  %s\n", glGetString(GL_VERSION));
-        TRACE("| GL_VENDOR:                   %s\n", glGetString(GL_VENDOR));
-        TRACE("| GL_RENDERER:                 %s\n", glGetString(GL_RENDERER));
-        TRACE("| GL_SHADING_LANGUAGE_VERSION: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
-        TRACE("+------------------------------------------------\n");
-
-        GL_CHECK(g_ogl.context = ogl_create_core_context(g_ogl.hdc));
 
         BOOL got_swap_ctrl;
         GL_CHECK(got_swap_ctrl = oglu_ext_exists("WGL_EXT_swap_control", g_ogl.hdc));
@@ -108,7 +137,13 @@ DWORD WINAPI ogl_render_main(void)
         ogl_check_error("xwglMakeCurrent()");
     }
 
-    xwglMakeCurrent(NULL, NULL);
+    for (int i = 0; i < 5; i++)
+    {
+        if (xwglMakeCurrent(NULL, NULL))
+            break;
+
+        Sleep(50);
+    }
     
     if (!g_ogl.use_opengl)
     {
