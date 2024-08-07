@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <initguid.h>
 #include "directinput.h"
+#include "winapi_hooks.h"
 #include "debug.h"
 #include "hook.h"
 #include "dd.h"
@@ -88,16 +89,60 @@ static HRESULT WINAPI fake_did_GetDeviceData(
 
     HRESULT result = real_did_GetDeviceData(This, cbObjectData, rgdod, pdwInOut, dwFlags);
 
-    if (SUCCEEDED(result) && This == g_mouse_device && !g_mouse_locked && !g_config.devmode)
+    if (SUCCEEDED(result) && This == g_mouse_device)
     {
-        if (pdwInOut)
+        if (pdwInOut && rgdod && *pdwInOut > 0 && cbObjectData > 0)
         {
-            if (rgdod && *pdwInOut > 0 && cbObjectData > 0)
+            if (!g_mouse_locked && !g_config.devmode)
             {
                 memset(rgdod, 0, *pdwInOut * cbObjectData);
+                *pdwInOut = 0;
             }
+            else if (g_ddraw.width && g_ddraw.height)
+            {
+                POINT pt;
+                fake_GetCursorPos(&pt);
+                fake_SetCursorPos((g_ddraw.width / 2), (g_ddraw.height / 2));
 
-            *pdwInOut = 0;
+                static int x, y;
+                x += pt.x - (g_ddraw.width / 2);
+                y += pt.y - (g_ddraw.height / 2);
+
+                if (cbObjectData == sizeof(DIDEVICEOBJECTDATA_DX3))
+                {
+                    LPDIDEVICEOBJECTDATA_DX3 rgdod16 = (LPDIDEVICEOBJECTDATA_DX3)rgdod;
+
+                    for (int i = 0; i < *pdwInOut; i++)
+                    {
+                        if (rgdod16[i].dwOfs == DIMOFS_X)
+                        {
+                            rgdod16[i].dwData = x;
+                            x = 0;
+                        }
+                        else if (rgdod16[i].dwOfs == DIMOFS_Y)
+                        {
+                            rgdod16[i].dwData = y;
+                            y = 0;
+                        }
+                    }
+                }
+                else if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
+                {
+                    for (int i = 0; i < *pdwInOut; i++)
+                    {
+                        if (rgdod[i].dwOfs == DIMOFS_X)
+                        {
+                            rgdod[i].dwData = x;
+                            x = 0;
+                        }
+                        else if (rgdod[i].dwOfs == DIMOFS_Y)
+                        {
+                            rgdod[i].dwData = y;
+                            y = 0;
+                        }
+                    }
+                }
+            }
         }
     }
 
