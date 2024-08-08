@@ -83,7 +83,8 @@ jobs:
               
               cp "${{ steps.build-releasexp.outputs.releasexp }}" cnc-ddraw-releasexp
               
-              7z a -tzip -mm=Deflate -mfb=258 -mpass=15 "./cnc-ddraw-experimental/cnc-ddraw-experimental-release.zip" "./cnc-ddraw-releasexp/*"
+              cp "${{ steps.build-releasexp.outputs.releasexp-pdb }}" cnc-ddraw-experimental
+              7z a -tzip -mm=Deflate -mfb=258 -mpass=15 "./cnc-ddraw-experimental/cnc-ddraw-experimental-release.zip" "./cnc-ddraw-releasexp/ddraw.dll"
            fi
 
            if [[ -f "${{ steps.build-debug.outputs.debug }}" ]]; then

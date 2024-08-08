@@ -46,10 +46,16 @@ outputs:
  release:
   description:  'Full path to ddraw.dll built with Release configuration'
   value:         ${{ steps.build-release.outputs.ddraw-dll }}
+ release-pdb:
+  description:  'Full path to ddraw.pdb built with Release configuration'
+  value:         ${{ steps.build-release.outputs.ddraw-pdb }}
 
  releasexp:
   description:  'Full path to ddraw.dll built with ReleaseXP configuration'
   value:         ${{ steps.build-releasexp.outputs.ddraw-dll }}
+ releasexp-pdb:
+  description:  'Full path to ddraw.pdb built with ReleaseXP configuration'
+  value:         ${{ steps.build-releasexp.outputs.ddraw-pdb }}
 
  debug:
   description: 'Full path to ddraw.dll built with Debug configuration'
@@ -119,6 +125,7 @@ runs:
              "${{ steps.msbuild.outputs.exe }}" "$GITHUB_ACTION_PATH/cnc-ddraw.sln" -p:Configuration=Release -p:Platform=x86 -p:PlatformToolset=v142
              #
              echo "ddraw-dll=$(cygpath --windows "$GITHUB_ACTION_PATH/bin/Release/ddraw.dll")" >> $GITHUB_OUTPUT
+             echo "ddraw-pdb=$(cygpath --windows "$GITHUB_ACTION_PATH/bin/Release/ddraw.pdb")" >> $GITHUB_OUTPUT
 
              echo "::endgroup::"
           fi
@@ -137,6 +144,7 @@ runs:
              "${{ steps.msbuild.outputs.exe }}" "$GITHUB_ACTION_PATH/cnc-ddraw.sln" -p:Configuration=ReleaseXP -p:Platform=x86 -p:PlatformToolset=v141_xp
              #
              echo "ddraw-dll=$(cygpath --windows "$GITHUB_ACTION_PATH/bin/ReleaseXP/ddraw.dll")" >> $GITHUB_OUTPUT
+             echo "ddraw-pdb=$(cygpath --windows "$GITHUB_ACTION_PATH/bin/ReleaseXP/ddraw.pdb")" >> $GITHUB_OUTPUT
 
              echo "::endgroup::"
           fi
