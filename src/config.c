@@ -253,7 +253,7 @@ static void cfg_create_ini()
             "\n"
             "; Force CPU0 affinity, avoids crashes/freezing, *might* have a performance impact\n"
             "; Note: Disable this if the game is not running smooth or there are sound issues\n"
-            "singlecpu=false\n"
+            "singlecpu=true\n"
             "\n"
             "; Available resolutions, possible values: 0 = Small list, 1 = Very small list, 2 = Full list\n"
             "; Note: Set this to 2 if your chosen resolution is not working or does not show up in the list\n"
