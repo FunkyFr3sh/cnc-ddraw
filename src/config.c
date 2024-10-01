@@ -34,7 +34,7 @@ void cfg_load()
     GET_INT(g_config.window_rect.bottom, "height", 0);
     GET_BOOL(g_config.fullscreen, "fullscreen", FALSE);
     GET_BOOL(g_config.windowed, "windowed", FALSE);
-    GET_BOOL(g_config.maintas, "maintas", FALSE);
+    GET_BOOL(g_config.maintas, "maintas", TRUE);
     GET_BOOL(g_config.boxing, "boxing", FALSE);
     GET_INT(g_config.maxfps, "maxfps", -1);
     GET_BOOL(g_config.vsync, "vsync", FALSE);
@@ -173,7 +173,7 @@ static void cfg_create_ini()
             "windowed=true\n"
             "\n"
             "; Maintain aspect ratio\n"
-            "maintas=false\n"
+            "maintas=true\n"
             "\n"
             "; Windowboxing / Integer Scaling\n"
             "boxing=false\n"
