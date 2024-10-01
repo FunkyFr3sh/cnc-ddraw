@@ -590,6 +590,11 @@ HRESULT dd_SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwFl
                 g_config.fullscreen = FALSE;
             }
         }
+
+        if (g_config.maxgameticks == 0 && g_ddraw->mode.dmDisplayFrequency == 60)
+        {
+            g_config.maxgameticks == -2;
+        }
     }
 
     g_ddraw->render.width = g_config.window_rect.right;
