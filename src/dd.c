@@ -593,7 +593,7 @@ HRESULT dd_SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwFl
 
         if (g_config.maxgameticks == 0 && g_ddraw->mode.dmDisplayFrequency == 60)
         {
-            g_config.maxgameticks == -2;
+            g_config.maxgameticks = -2;
         }
     }
 
