@@ -138,6 +138,7 @@ typedef struct CNCDDRAW
     BOOL accurate_timers;
     BOOL resizable;
     BOOL toggle_borderless;
+    BOOL toggle_upscaled;
     BOOL nonexclusive;
     BOOL fixpitch;
     int fixchilds;

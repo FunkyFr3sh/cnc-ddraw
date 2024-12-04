@@ -16,7 +16,7 @@ static void cfg_init();
 static void cfg_create_ini();
 
 CNCDDRAWCONFIG g_config =
-    { .window_rect = {.left = -32000, .top = -32000, .right = 0, .bottom = 0 }, .window_state = -1, .borderless_state = -1 };
+    { .window_rect = {.left = -32000, .top = -32000, .right = 0, .bottom = 0 }, .window_state = -1, .upscaled_state = -1 };
 
 void cfg_load()
 {
@@ -41,6 +41,7 @@ void cfg_load()
     g_ddraw->accurate_timers = cfg_get_bool("accuratetimers", FALSE);
     g_ddraw->resizable = cfg_get_bool("resizable", TRUE);
     g_ddraw->toggle_borderless = cfg_get_bool("toggle_borderless", FALSE);
+    g_ddraw->toggle_upscaled = cfg_get_bool("toggle_upscaled", FALSE);
     g_ddraw->nonexclusive = cfg_get_bool("nonexclusive", FALSE);
     g_ddraw->fixpitch = cfg_get_bool("fixpitch", FALSE);
     g_ddraw->fixchilds = cfg_get_int("fixchilds", FIX_CHILDS_DETECT_PAINT);
@@ -231,9 +232,9 @@ void cfg_save()
         WritePrivateProfileString(section, "windowed", g_config.window_state ? "true" : "false", g_config.ini_path);
     }
 
-    if (g_config.borderless_state != -1)
+    if (g_config.upscaled_state != -1)
     {
-        WritePrivateProfileString(section, "fullscreen", g_config.borderless_state ? "true" : "false", g_config.ini_path);
+        WritePrivateProfileString(section, "fullscreen", g_config.upscaled_state ? "true" : "false", g_config.ini_path);
     }
 }
 
@@ -314,6 +315,9 @@ static void cfg_create_ini()
             "\n"
             "; Switch between windowed/borderless modes with alt+enter rather than windowed/fullscreen modes\n"
             "toggle_borderless=false\n"
+            "\n"
+            "; Switch between windowed/fullscreen upscaled modes with alt+enter rather than windowed/fullscreen modes\n"
+            "toggle_upscaled=false\n"
             "\n"
             "\n"
             "\n"
