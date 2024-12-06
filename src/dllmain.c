@@ -89,10 +89,10 @@ BOOL WINAPI DllMain(HANDLE hDll, DWORD dwReason, LPVOID lpReserved)
         if (status == ERROR_SUCCESS)
         {
             LPCTSTR x264 = "x264vfw.dll";
-            RegSetValueExA(hkey,"vidc.x264", 0, REG_SZ, x264, strlen(x264) + 1);
+            RegSetValueExA(hkey,"vidc.x264", 0, REG_SZ, (const BYTE*)x264, strlen(x264) + 1);
 
             LPCTSTR xvid = "xvidvfw.dll";
-            RegSetValueExA(hkey, "vidc.xvid", 0, REG_SZ, xvid, strlen(xvid) + 1);
+            RegSetValueExA(hkey, "vidc.xvid", 0, REG_SZ, (const BYTE*)xvid, strlen(xvid) + 1);
 
             RegCloseKey(hkey);
         }
