@@ -1,53 +1,48 @@
 -include config.mk
 
-WINDRES  ?= windres
-LDFLAGS   = -Iinc -Wall -Wl,--enable-stdcall-fixup -s
-CFLAGS    = -std=c99 -O2 -march=i486
-LIBS      = -lgdi32 -lwinmm -lpsapi -ldbghelp -lole32
+TARGET   ?= ddraw.dll
 
-FILES = src/IDirect3D/IDirect3D.c \
-        src/IDirect3D/IDirect3D2.c \
-        src/IDirect3D/IDirect3D3.c \
-        src/IDirect3D/IDirect3D7.c \
-        src/IDirectDraw/IDirectDraw.c \
-        src/IDirectDraw/IDirectDrawPalette.c \
-        src/IDirectDraw/IDirectDrawClipper.c \
-        src/IDirectDraw/IDirectDrawSurface.c \
-        src/IDirectDraw/IDirectDrawGammaControl.c \
-        src/IAMMediaStream/IAMMediaStream.c \
-        src/crc32.c \
-        src/blt.c \
-        src/dd.c \
-        src/ddpalette.c \
-        src/ddsurface.c \
-        src/ddclipper.c \
-        src/render_ogl.c \
-        src/render_gdi.c \
-        src/render_d3d9.c \
-        src/debug.c \
-        src/mouse.c \
-        src/winapi_hooks.c \
-        src/screenshot.c \
-        src/config.c \
-        src/lodepng.c \
-        src/directinput.c \
-        src/hook.c \
-        src/dllmain.c \
-        src/wndproc.c \
-        src/utils.c \
-        src/fps_limiter.c \
-        src/opengl_utils.c
+LDFLAGS  ?= -Wl,--enable-stdcall-fixup -s -static -shared
+CFLAGS   ?= -Iinc -O2 -Wall -std=c99 -Wno-incompatible-pointer-types
+LIBS      = -lgdi32 -lwinmm -lole32 -lMsimg32 -lPsapi
 
-all:
-	$(info  )
-	$(info **********************************************************************************************)
-	$(info WARNING: This build is outdated and does not support all cnc-ddraw features [Detours/SEH])
-	$(info WARNING: Some games that require hooks may crash or glitch, please use the msvc build instead)
-	$(info **********************************************************************************************)
-	$(info  )
-	$(WINDRES) -J rc ddraw.rc ddraw.rc.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -shared -o ddraw.dll $(FILES) ddraw.def ddraw.rc.o $(LIBS)
-#	$(CC) $(CFLAGS) $(LDFLAGS) -nostdlib -shared -o ddraw.dll $(FILES) ddraw.def ddraw.rc.o $(LIBS) -lkernel32 -luser32 -lmsvcrt
+COMMIT   := $(shell git describe --match=NeVeRmAtCh --always --dirty || echo UNKNOWN)
+BRANCH   := $(shell git rev-parse --abbrev-ref HEAD || echo UNKNOWN)
+
+ECHOTEST := $(shell echo \"\")
+ifeq ($(ECHOTEST),\"\")
+	# Windows
+	HASH     := \#
+	ECOMMIT  := $(shell echo $(HASH)define GIT_COMMIT "$(COMMIT)" > inc/git.h)
+	EBRANCH  := $(shell echo $(HASH)define GIT_BRANCH "$(BRANCH)" >> inc/git.h)
+else
+	# Either *nix or Windows with BusyBox (e.g. w64devkit)
+	ECOMMIT  := $(shell echo "#define GIT_COMMIT" \"$(COMMIT)\" > inc/git.h)
+	EBRANCH  := $(shell echo "#define GIT_BRANCH" \"$(BRANCH)\" >> inc/git.h)
+endif
+
+ifdef DEBUG
+	CFLAGS   += -D _DEBUG -D _DEBUG_X
+endif
+
+ifdef _WIN32_WINNT
+	CFLAGS   += -march=i486 -D _WIN32_WINNT=$(_WIN32_WINNT)
+endif
+
+CC        = i686-w64-mingw32-gcc
+WINDRES  ?= i686-w64-mingw32-windres
+
+SRCS     := $(wildcard src/*.c) $(wildcard src/*/*.c) ddraw.rc
+OBJS     := $(addsuffix .o, $(basename $(SRCS)))
+
+.PHONY: clean all
+all: $(TARGET)
+
+%.o: %.rc
+	$(WINDRES) -J rc $< $@ || windres -J rc $< $@
+
+$(TARGET): $(OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^ ddraw.def $(LIBS)
 
 clean:
-	$(RM) ddraw.dll ddraw.rc.o
+	$(RM) $(TARGET) $(OBJS) || del $(TARGET) $(subst /,\\,$(OBJS))
