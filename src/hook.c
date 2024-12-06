@@ -185,14 +185,22 @@ void hook_patch_obfuscated_iat_list(HMODULE hmod, BOOL unhook, HOOKLIST* hooks, 
         if (nt_headers->Signature != IMAGE_NT_SIGNATURE)
             return;
 
-        PIMAGE_IMPORT_DESCRIPTOR import_desc = (PIMAGE_IMPORT_DESCRIPTOR)((DWORD)dos_header +
-            (DWORD)(nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress));
+        DWORD import_desc_rva = nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+        DWORD import_desc_size = nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
 
-        if (import_desc == (PIMAGE_IMPORT_DESCRIPTOR)nt_headers)
+        if (import_desc_rva == 0 || import_desc_size == 0)
             return;
+
+        PIMAGE_IMPORT_DESCRIPTOR import_desc = (PIMAGE_IMPORT_DESCRIPTOR)((DWORD)dos_header + import_desc_rva);
 
         while (import_desc->FirstThunk)
         {
+            if (!import_desc->Name)
+            {
+                import_desc++;
+                continue;
+            }
+
             for (int i = 0; hooks[i].module_name[0]; i++)
             {
                 char* imp_module_name = (char*)((DWORD)dos_header + (DWORD)(import_desc->Name));
@@ -295,32 +303,43 @@ void hook_patch_iat_list(HMODULE hmod, BOOL unhook, HOOKLIST* hooks, BOOL is_loc
         if (nt_headers->Signature != IMAGE_NT_SIGNATURE)
             return;
 
-        PIMAGE_IMPORT_DESCRIPTOR import_desc = (PIMAGE_IMPORT_DESCRIPTOR)((DWORD)dos_header +
-            (DWORD)(nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress));
+        DWORD import_desc_rva = nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+        DWORD import_desc_size = nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
 
-        if (import_desc == (PIMAGE_IMPORT_DESCRIPTOR)nt_headers)
+        if (import_desc_rva == 0 || import_desc_size == 0)
             return;
+
+        PIMAGE_IMPORT_DESCRIPTOR import_desc = (PIMAGE_IMPORT_DESCRIPTOR)((DWORD)dos_header + import_desc_rva);
 
         while (import_desc->FirstThunk)
         {
+            if (!import_desc->OriginalFirstThunk || !import_desc->Name)
+            {
+                import_desc++;
+                continue;
+            }
+
             for (int i = 0; hooks[i].module_name[0]; i++)
             {
-                char* imp_module_name = (char*)((DWORD)dos_header + (DWORD)(import_desc->Name));
+                char* imp_module_name = (char*)((DWORD)dos_header + import_desc->Name);
 
                 if (_stricmp(imp_module_name, hooks[i].module_name) == 0)
                 {
-                    PIMAGE_THUNK_DATA first_thunk =
-                        (PIMAGE_THUNK_DATA)((DWORD)dos_header + (DWORD)import_desc->FirstThunk);
+                    PIMAGE_THUNK_DATA first_thunk = (void*)((DWORD)dos_header + import_desc->FirstThunk);
+                    PIMAGE_THUNK_DATA o_first_thunk = (void*)((DWORD)dos_header + import_desc->OriginalFirstThunk);
 
-                    PIMAGE_THUNK_DATA original_first_thunk =
-                        (PIMAGE_THUNK_DATA)((DWORD)dos_header + (DWORD)import_desc->OriginalFirstThunk);
-
-                    while (first_thunk->u1.Function && original_first_thunk->u1.AddressOfData)
+                    while (first_thunk->u1.Function)
                     {
-                        PIMAGE_IMPORT_BY_NAME import =
-                            (PIMAGE_IMPORT_BY_NAME)((DWORD)dos_header + original_first_thunk->u1.AddressOfData);
+                        if (!o_first_thunk->u1.AddressOfData)
+                    {
+                            first_thunk++;
+                            o_first_thunk++;
+                            continue;
+                        }
 
-                        if ((original_first_thunk->u1.Ordinal & IMAGE_ORDINAL_FLAG) == 0)
+                        PIMAGE_IMPORT_BY_NAME import = (void*)((DWORD)dos_header + o_first_thunk->u1.AddressOfData);
+
+                        if ((o_first_thunk->u1.Ordinal & IMAGE_ORDINAL_FLAG) == 0)
                         {
                             for (int x = 0; hooks[i].data[x].function_name[0]; x++)
                             {
@@ -330,7 +349,7 @@ void hook_patch_iat_list(HMODULE hmod, BOOL unhook, HOOKLIST* hooks, BOOL is_loc
                                 if (!is_local && (hooks[i].data[x].flags & HOOK_LOCAL_ONLY))
                                     continue;
 
-                                if (_stricmp((const char*)import->Name, hooks[i].data[x].function_name) == 0)
+                                if (strcmp((const char*)import->Name, hooks[i].data[x].function_name) == 0)
                                 {
                                     DWORD op;
 
@@ -367,7 +386,7 @@ void hook_patch_iat_list(HMODULE hmod, BOOL unhook, HOOKLIST* hooks, BOOL is_loc
                         }
 
                         first_thunk++;
-                        original_first_thunk++;
+                        o_first_thunk++;
                     }
                 }
             }
