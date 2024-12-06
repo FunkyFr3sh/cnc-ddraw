@@ -889,13 +889,19 @@ int WINAPI fake_StretchDIBits(
         }
         else if (g_ddraw->width > 0 && g_ddraw->render.hdc)
         {
+            int base_width = g_ddraw->height * 4.0/3.0;
+            double scaling_factor = (double)g_ddraw->render.height / g_ddraw->height;
+            DestWidth = base_width * scaling_factor;
+            DestHeight = g_ddraw->render.height;
+            xDest += (g_ddraw->render.width - DestWidth) / 2;
+
             return
                 real_StretchDIBits(
                     g_ddraw->render.hdc,
-                    xDest + g_ddraw->render.viewport.x,
-                    yDest + g_ddraw->render.viewport.y,
-                    (int)(DestWidth * g_ddraw->render.scale_w),
-                    (int)(DestHeight * g_ddraw->render.scale_h),
+                    xDest,
+                    yDest,
+                    DestWidth,
+                    DestHeight,
                     xSrc,
                     ySrc,
                     SrcWidth,
