@@ -779,10 +779,10 @@ BOOL WINAPI fake_StretchBlt(
 
             return real_StretchBlt(
                 g_ddraw->render.hdc,
-                xDest + g_ddraw->render.viewport.x,
-                yDest + g_ddraw->render.viewport.y,
-                (int)(wDest * g_ddraw->render.scale_w),
-                (int)(hDest * g_ddraw->render.scale_h),
+                xDest,
+                yDest,
+                wDest,
+                hDest,
                 hdcSrc,
                 xSrc,
                 ySrc,
