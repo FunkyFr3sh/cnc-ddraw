@@ -73,10 +73,12 @@ BOOL WINAPI DllMain(HANDLE hDll, DWORD dwReason, LPVOID lpReserved)
 
         /* add registry key for x264vfw */
 
+        BOOL is_wine = real_GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != 0;
+
         HKEY hkey;
         LONG status =
             RegCreateKeyExA(
-                HKEY_CURRENT_USER,
+                is_wine ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER,
                 "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Drivers32",
                 0,
                 NULL,
