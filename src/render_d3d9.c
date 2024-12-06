@@ -10,7 +10,7 @@
 #include "wndproc.h"
 #include "blt.h"
 #include "debug.h"
-#include "D3d9types.h"
+#include "d3d9types.h"
 #include "hook.h"
 #include "config.h"
 
