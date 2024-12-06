@@ -759,6 +759,24 @@ BOOL WINAPI fake_StretchBlt(
         }
         else if (g_ddraw->width > 0 && g_ddraw->render.hdc)
         {
+            // new logic by emoon
+            // g_ddraw->width check detects new widescreen patch
+            if (g_ddraw->width > 640 && g_config.maintas)
+            {
+                int base_width = g_ddraw->height * 4.0 / 3.0;
+                double scaling_factor = (double)g_ddraw->render.height / g_ddraw->height;
+                wDest = base_width * scaling_factor;
+                hDest = g_ddraw->render.height;
+                xDest += (g_ddraw->render.width - wDest) / 2;
+            }
+            else // original 4:3 logic
+            {
+                xDest += g_ddraw->render.viewport.x;
+                yDest += g_ddraw->render.viewport.y;
+                wDest = (int)(wDest * g_ddraw->render.scale_w);
+                hDest = (int)(hDest * g_ddraw->render.scale_h);
+            }
+
             return real_StretchBlt(
                 g_ddraw->render.hdc,
                 xDest + g_ddraw->render.viewport.x,
