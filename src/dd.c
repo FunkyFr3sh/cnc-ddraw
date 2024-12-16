@@ -1212,7 +1212,7 @@ HRESULT dd_WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 {
     if (g_config.maxgameticks == -2)
     {
-        if (fpsl_dwm_flush() || fpsl_wait_for_vblank(g_config.maxfps >= 0 && !g_config.vsync))
+        if (fpsl_wait_for_vblank(g_config.maxfps >= 0 && !g_config.vsync) || fpsl_dwm_flush())
             return DD_OK;
     }
 
