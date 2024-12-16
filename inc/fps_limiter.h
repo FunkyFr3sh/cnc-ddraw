@@ -48,6 +48,7 @@ typedef struct FPSLIMITER
     D3DKMTCLOSEADAPTERPROC D3DKMTCloseAdapter;
     BOOL got_adapter;
     BOOL initialized;
+    BOOL is_wine;
 } FPSLIMITER;
 
 extern FPSLIMITER g_fpsl;

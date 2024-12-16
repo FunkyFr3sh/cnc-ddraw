@@ -75,6 +75,8 @@ void fpsl_init()
             (D3DKMTCLOSEADAPTERPROC)real_GetProcAddress(g_fpsl.gdi32_dll, "D3DKMTCloseAdapter");
     }
 
+    g_fpsl.is_wine = real_GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != 0;
+
     g_fpsl.initialized = TRUE;
 }
 
@@ -104,7 +106,12 @@ BOOL fpsl_wait_for_vblank(BOOL open_adapter)
 
 BOOL fpsl_dwm_flush()
 {
-    return g_fpsl.initialized && fpsl_dwm_is_enabled() && g_fpsl.DwmFlush && SUCCEEDED(g_fpsl.DwmFlush());
+    return 
+        g_fpsl.initialized && 
+        fpsl_dwm_is_enabled() && 
+        g_fpsl.DwmFlush && 
+        !g_fpsl.is_wine &&
+        SUCCEEDED(g_fpsl.DwmFlush());
 }
 
 BOOL fpsl_dwm_is_enabled()
