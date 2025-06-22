@@ -454,6 +454,7 @@ Wine (Linux/macOS/Android) only: override `ddraw` in [winecfg](https://wiki.wine
 - Uprising 2: Lead and Destroy
 - Uprising: Join or Die
 - Vermeer
+- Versailles 1685 : Complot à la cour du Roi Soleil
 - Virtua Cop
 - Virtua Cop 2
 - Virtua Fighter 2
