@@ -8,7 +8,7 @@ on:
 
 jobs:
  Build:
-  runs-on: windows-2019
+  runs-on: windows-latest
   steps:
 
 #  - name: Install Windows XP Support for Visual Studio 2022 # windows-2022 # v141_xp # Installation takes more than 5 minutes
