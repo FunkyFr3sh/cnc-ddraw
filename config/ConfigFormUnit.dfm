@@ -2734,7 +2734,7 @@ object ConfigForm: TConfigForm
       Width = 93
       Height = 21
       Margins.Top = 18
-      Caption = 'Enable VSync'
+      Caption = 'Enable V-Sync'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -16
