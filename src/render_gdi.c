@@ -3,6 +3,7 @@
 #include "fps_limiter.h"
 #include "dd.h"
 #include "ddsurface.h"
+#include "ddsurface_internal.h"
 #include "opengl_utils.h"
 #include "utils.h"
 #include "wndproc.h"
@@ -67,7 +68,7 @@ DWORD WINAPI gdi_render_main(void)
                 if (timeGetTime() < warning_end_tick)
                 {
                     HDC primary_dc;
-                    dds_GetDC(g_ddraw.primary, &primary_dc);
+                    dds_GetDCInternal(g_ddraw.primary, &primary_dc);
 
                     RECT rc = { 0, 0, g_ddraw.width, g_ddraw.height };
                     DrawText(primary_dc, warning_text, -1, &rc, DT_NOCLIP | DT_CENTER);

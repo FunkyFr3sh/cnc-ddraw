@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "dd.h"
 #include "ddsurface.h"
+#include "ddsurface_internal.h"
 #include "hook.h"
 #include "mouse.h"
 #include "render_d3d9.h"
@@ -1271,7 +1272,7 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
                 HDC dst_dc = GetDC(hwnd);
                 HDC src_dc;
 
-                dds_GetDC(this, &src_dc);
+                dds_GetDCInternal(this, &src_dc);
 
                 real_MapWindowPoints(HWND_DESKTOP, g_ddraw.hwnd, (LPPOINT)&pos, 2);
 

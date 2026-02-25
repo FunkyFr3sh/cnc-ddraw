@@ -7,6 +7,7 @@
 #include "ddraw.h"
 #include "dd.h"
 #include "ddsurface.h"
+#include "ddsurface_internal.h"
 #include "wndproc.h"
 #include "debug.h"
 #include "hook.h"
@@ -391,7 +392,7 @@ void dbg_draw_frame_info_start()
     if (g_ddraw.primary)
     {
         HDC primary_dc;
-        dds_GetDC(g_ddraw.primary, &primary_dc);
+        dds_GetDCInternal(g_ddraw.primary, &primary_dc);
 
         DrawText(primary_dc, debug_text, -1, &debugrc, DT_NOCLIP);
     }
