@@ -15,6 +15,7 @@ DWORD WINAPI gdi_render_main(void)
 {
     static DWORD warning_end_tick = 0;
     static char warning_text[512] = { 0 };
+    BOOL child_noscale_logged = FALSE;
 
     if (g_ddraw.show_driver_warning)
     {
@@ -127,6 +128,12 @@ DWORD WINAPI gdi_render_main(void)
             else if (!g_ddraw.child_window_exists &&
                 (g_ddraw.render.width != g_ddraw.width || g_ddraw.render.height != g_ddraw.height))
             {
+                if (child_noscale_logged)
+                {
+                    TRACE("     child window no longer blocks scaling (GDI)\n");
+                    child_noscale_logged = FALSE;
+                }
+
                 lines_copied = real_StretchDIBits(
                     g_ddraw.render.hdc,
                     g_ddraw.render.viewport.x,
@@ -141,6 +148,15 @@ DWORD WINAPI gdi_render_main(void)
                     g_ddraw.primary->bmi,
                     DIB_RGB_COLORS,
                     SRCCOPY);
+            }
+            else if (g_ddraw.child_window_exists &&
+                (g_ddraw.render.width != g_ddraw.width || g_ddraw.render.height != g_ddraw.height))
+            {
+                if (!child_noscale_logged)
+                {
+                    TRACE("     child window active (GDI scaling disabled)\n");
+                    child_noscale_logged = TRUE;
+                }
             }
 
             if (lines_copied == 0 || lines_copied == GDI_ERROR)

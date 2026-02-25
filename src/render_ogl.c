@@ -1122,6 +1122,7 @@ static void ogl_render()
                         {
                             glViewport(0, g_ddraw.render.height - g_ddraw.height, g_ddraw.width, g_ddraw.height);
                             needs_update = TRUE;
+                            TRACE("     child window active (OpenGL scaling disabled)\n");
                         }
                     }
                     else if (needs_update)
@@ -1133,6 +1134,7 @@ static void ogl_render()
                             g_ddraw.render.viewport.height);
 
                         needs_update = FALSE;
+                        TRACE("     child window no longer blocks scaling (OpenGL)\n");
                     }
                 }
             }
