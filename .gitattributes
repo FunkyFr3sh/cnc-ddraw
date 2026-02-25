@@ -1,0 +1,7 @@
+# Normalize text files to LF in the repository and use platform defaults in working trees.
+* text=auto
+
+# Keep Windows shell scripts with CRLF in working trees.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
