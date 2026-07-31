@@ -10,6 +10,7 @@
 #include "config.h"
 #include "utils.h"
 #include "mouse.h"
+#include "versionhelpers.h"
 #include "keyboard.h"
 #include "wndproc.h"
 #include "render_gdi.h"
@@ -347,8 +348,18 @@ BOOL WINAPI fake_SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int
         {
             UINT req_flags = SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER;
 
+            /* cnc-ddraw-macfix: on macOS windowed mode allow native title-bar drag
+               moves. The original code swallowed every move to pin the window, but
+               on winemac that pinned the Win32 rect while the Cocoa window moved,
+               breaking the cursor mapping. Letting the move through makes winemac's
+               frame_changed -> SetWindowPos sync the Win32 position to the drag; the
+               position stays stable once fake_MapWindowPoints no longer rebases
+               winemac's internal coord math (see there). */
             if ((uFlags & req_flags) != req_flags)
-                return TRUE;
+            {
+                if (!(IsMacOS() && g_config.windowed))
+                    return TRUE;
+            }
         }
         else if (!IsChild(g_ddraw.hwnd, hWnd) && !(real_GetWindowLongA(hWnd, GWL_STYLE) & WS_CHILD))
         {
@@ -503,6 +514,14 @@ BOOL WINAPI fake_EnableWindow(HWND hWnd, BOOL bEnable)
 
 int WINAPI fake_MapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT cPoints)
 {
+    /* cnc-ddraw-macfix: on macOS the winemac driver itself calls MapWindowPoints
+       (e.g. in macdrv_window_frame_changed) to sync native window drags. Our hook
+       was adding the game window's screen offset to those internal calls, corrupting
+       winemac's coordinate math and making the position run away when the window is
+       moved. Don't translate on macOS windowed mode. */
+    if (IsMacOS() && g_config.windowed)
+        return real_MapWindowPoints(hWndFrom, hWndTo, lpPoints, cPoints);
+
     if (g_ddraw.ref && g_ddraw.hwnd)
     {
         if (hWndTo == HWND_DESKTOP)

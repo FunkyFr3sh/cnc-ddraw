@@ -83,6 +83,24 @@ void mouse_unlock()
     }
 }
 
+/* cnc-ddraw-macfix: re-apply the cursor clip at the CURRENT window position.
+   mouse_lock() early-returns when already locked, so moving the window never
+   updated ClipCursor. Called on WM_WINDOWPOSCHANGED so the clip follows the
+   window (needed on Wine/macOS where the window can be dragged). */
+void mouse_update_clip()
+{
+    if (g_config.devmode || !g_hook_active || !g_ddraw.hwnd || !g_mouse_locked)
+        return;
+
+    if (util_is_minimized(g_ddraw.hwnd))
+        return;
+
+    RECT rc;
+    CopyRect(&rc, &g_ddraw.mouse.rc);
+    real_MapWindowPoints(g_ddraw.hwnd, HWND_DESKTOP, (LPPOINT)&rc, 2);
+    real_ClipCursor(&rc);
+}
+
 LRESULT CALLBACK mouse_hook_proc(int Code, WPARAM wParam, LPARAM lParam)
 {
     if (!g_ddraw.ref)
