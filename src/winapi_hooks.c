@@ -201,6 +201,20 @@ BOOL WINAPI fake_GetWindowRect(HWND hWnd, LPRECT lpRect)
             {
                 real_MapWindowPoints(HWND_DESKTOP, g_ddraw.hwnd, (LPPOINT)lpRect, 2);
 
+                {
+                    /* This hook maps ANY window into game-window client space, and that space
+                       is offset from surface space by the surface origin. So the inverse must
+                       be applied to every window, not just direct children - the game mixes
+                       dialog and control rects arithmetically, and transforming only one side
+                       leaks the offset into the result. */
+                    int ox, oy;
+                    util_get_surface_origin(&ox, &oy);
+                    lpRect->left -= ox;
+                    lpRect->right -= ox;
+                    lpRect->top -= oy;
+                    lpRect->bottom -= oy;
+                }
+
                 return TRUE;
             }
 
@@ -236,7 +250,19 @@ BOOL WINAPI fake_ClientToScreen(HWND hWnd, LPPOINT lpPoint)
         return real_ClientToScreen(hWnd, lpPoint);
 
     if (g_ddraw.hwnd != hWnd)
-        return real_ClientToScreen(hWnd, lpPoint) && real_ScreenToClient(g_ddraw.hwnd, lpPoint);
+    {
+        if (real_ClientToScreen(hWnd, lpPoint) && real_ScreenToClient(g_ddraw.hwnd, lpPoint))
+        {
+            /* window client space -> surface space */
+            int ox, oy;
+            util_get_surface_origin(&ox, &oy);
+            lpPoint->x -= ox;
+            lpPoint->y -= oy;
+            return TRUE;
+        }
+
+        return FALSE;
+    }
 
     return TRUE;
 }
@@ -247,7 +273,15 @@ BOOL WINAPI fake_ScreenToClient(HWND hWnd, LPPOINT lpPoint)
         return real_ScreenToClient(hWnd, lpPoint);
 
     if (g_ddraw.hwnd != hWnd)
+    {
+        /* surface space -> window client space */
+        int ox, oy;
+        util_get_surface_origin(&ox, &oy);
+        lpPoint->x += ox;
+        lpPoint->y += oy;
+
         return real_ClientToScreen(g_ddraw.hwnd, lpPoint) && real_ScreenToClient(hWnd, lpPoint);
+    }
 
     return TRUE;
 }
@@ -359,6 +393,16 @@ BOOL WINAPI fake_SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int
                 Y += pt.y;
             }
         }
+        else if (!(uFlags & SWP_NOMOVE) && GetParent(hWnd) == g_ddraw.hwnd)
+        {
+            /* The game positions its child windows in surface space. Shift them by the
+               surface origin so they line up with where the surface is actually drawn.
+               Direct children only - grandchildren are relative to their own parent. */
+            int ox, oy;
+            util_get_surface_origin(&ox, &oy);
+            X += ox;
+            Y += oy;
+        }
     }
 
     return real_SetWindowPos(hWnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
@@ -406,6 +450,17 @@ BOOL WINAPI fake_MoveWindow(HWND hWnd, int X, int Y, int nWidth, int nHeight, BO
                 X = (int)(g_ddraw.render.viewport.x + (X * g_ddraw.render.scale_w));
                 Y = (int)(g_ddraw.render.viewport.y + (Y * g_ddraw.render.scale_h));
             }
+        }
+        else if (GetParent(hWnd) == g_ddraw.hwnd)
+        {
+            /* Same idea as the AoE2 textbox above, generalised: the game positions its child
+               windows in surface space, so shift them by the surface origin to match where the
+               surface is drawn. Origin only - the surface is rendered unscaled while a child
+               window is present. Direct children only. */
+            int ox, oy;
+            util_get_surface_origin(&ox, &oy);
+            X += ox;
+            Y += oy;
         }
     }
 
@@ -505,6 +560,11 @@ int WINAPI fake_MapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UI
 {
     if (g_ddraw.ref && g_ddraw.hwnd)
     {
+        int ox, oy;
+        UINT i;
+
+        util_get_surface_origin(&ox, &oy);
+
         if (hWndTo == HWND_DESKTOP)
         {
             if (hWndFrom == g_ddraw.hwnd)
@@ -513,8 +573,19 @@ int WINAPI fake_MapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UI
             }
             else
             {
+                int ret;
+
                 real_MapWindowPoints(hWndFrom, hWndTo, lpPoints, cPoints);
-                return real_MapWindowPoints(HWND_DESKTOP, g_ddraw.hwnd, lpPoints, cPoints);
+                ret = real_MapWindowPoints(HWND_DESKTOP, g_ddraw.hwnd, lpPoints, cPoints);
+
+                /* window client space -> surface space */
+                for (i = 0; lpPoints && i < cPoints; i++)
+                {
+                    lpPoints[i].x -= ox;
+                    lpPoints[i].y -= oy;
+                }
+
+                return ret;
             }
         }
 
@@ -526,6 +597,13 @@ int WINAPI fake_MapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UI
             }
             else
             {
+                /* surface space -> window client space */
+                for (i = 0; lpPoints && i < cPoints; i++)
+                {
+                    lpPoints[i].x += ox;
+                    lpPoints[i].y += oy;
+                }
+
                 real_MapWindowPoints(g_ddraw.hwnd, HWND_DESKTOP, lpPoints, cPoints);
                 return real_MapWindowPoints(hWndFrom, hWndTo, lpPoints, cPoints);
             }

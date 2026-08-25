@@ -145,10 +145,14 @@ DWORD WINAPI gdi_render_main(void)
 
             if (lines_copied == 0 || lines_copied == GDI_ERROR)
             {
+                int so_x, so_y;
+
+                util_get_surface_origin(&so_x, &so_y);
+
                 real_SetDIBitsToDevice(
                     g_ddraw.render.hdc,
-                    0,
-                    0,
+                    so_x,
+                    so_y,
                     g_ddraw.width,
                     g_ddraw.height,
                     0,

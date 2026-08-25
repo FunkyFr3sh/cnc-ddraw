@@ -544,11 +544,18 @@ static BOOL d3d9_set_states()
 
 static BOOL d3d9_update_vertices(BOOL upscale_hack, BOOL stretch)
 {
-    float vp_x = stretch ? (float)g_ddraw.render.viewport.x : 0.0f;
-    float vp_y = stretch ? (float)g_ddraw.render.viewport.y : 0.0f;
+    int so_x, so_y;
+    float vp_x, vp_y, vp_w, vp_h;
 
-    float vp_w = stretch ? (float)(g_ddraw.render.viewport.width + g_ddraw.render.viewport.x) : (float)g_ddraw.width;
-    float vp_h = stretch ? (float)(g_ddraw.render.viewport.height + g_ddraw.render.viewport.y) : (float)g_ddraw.height;
+    util_get_surface_origin(&so_x, &so_y);
+
+    /* Unscaled fallback must sit at the surface origin, not the window corner, so that
+       native child windows (shifted by the same origin in the window hooks) line up. */
+    vp_x = stretch ? (float)g_ddraw.render.viewport.x : (float)so_x;
+    vp_y = stretch ? (float)g_ddraw.render.viewport.y : (float)so_y;
+
+    vp_w = vp_x + (stretch ? (float)g_ddraw.render.viewport.width : (float)g_ddraw.width);
+    vp_h = vp_y + (stretch ? (float)g_ddraw.render.viewport.height : (float)g_ddraw.height);
 
     float s_h = upscale_hack ? g_d3d9.scale_h * ((float)g_ddraw.upscale_hack_height / g_ddraw.height) : g_d3d9.scale_h;
     float s_w = upscale_hack ? g_d3d9.scale_w * ((float)g_ddraw.upscale_hack_width / g_ddraw.width) : g_d3d9.scale_w;
