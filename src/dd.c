@@ -1125,14 +1125,24 @@ HRESULT dd_SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwFl
 
         AdjustWindowRectEx(&dst, style, GetMenu(g_ddraw.hwnd) != NULL, exstyle);
 
+        /* cnc-ddraw-macfix: on macOS, position/center the window only the first
+           time. After that keep whatever position the user dragged it to (add
+           SWP_NOMOVE) so dd_SetDisplayMode stops clobbering native title-bar drags
+           (winemac never reports those drags back as a WM_MOVE we could track). */
+        static BOOL macfix_positioned = FALSE;
+        UINT macfix_swp = SWP_SHOWWINDOW | SWP_FRAMECHANGED;
+        if (g_config.windowed && macfix_positioned && IsMacOS())
+            macfix_swp |= SWP_NOMOVE;
+        macfix_positioned = TRUE;
+
         real_SetWindowPos(
-            g_ddraw.hwnd, 
-            HWND_NOTOPMOST, 
-            dst.left, 
-            dst.top, 
-            (dst.right - dst.left), 
-            (dst.bottom - dst.top), 
-            SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+            g_ddraw.hwnd,
+            HWND_NOTOPMOST,
+            dst.left,
+            dst.top,
+            (dst.right - dst.left),
+            (dst.bottom - dst.top),
+            macfix_swp);
 
 
         BOOL d3d9_active = FALSE;

@@ -273,6 +273,10 @@ LRESULT CALLBACK fake_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
             PostMessage(g_ddraw.hwnd, WM_WINEFULLSCREEN, 0, 0);
         }
 
+        /* cnc-ddraw-macfix: window moved -> re-clip cursor to new position */
+        if (g_config.windowed && g_mouse_locked)
+            mouse_update_clip();
+
         break;
     }
     case WM_WINEFULLSCREEN:
@@ -564,7 +568,11 @@ LRESULT CALLBACK fake_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
                 util_update_bnet_pos(x, y);
             }
 
-            if (in_size_move || (IsLinux() && !g_config.fullscreen && g_ddraw.render.thread))
+            /* cnc-ddraw-macfix: winemac never sends WM_ENTERSIZEMOVE for native
+               title-bar drags, so in_size_move stays false and window_rect kept
+               its -32000 (center) value -> cnc-ddraw re-centered the window back
+               after every drag. Track the move on macOS too (like Linux). */
+            if (in_size_move || ((IsLinux() || IsMacOS()) && !g_config.fullscreen && g_ddraw.render.thread))
             {
                 if (x != -32000)
                     g_config.window_rect.left = x; /* -32000 = Exit/Minimize */
