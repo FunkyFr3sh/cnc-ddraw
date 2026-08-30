@@ -12,7 +12,7 @@ cnc-ddraw can fix compatibility issues in older 2D games, such as black screen, 
  - Alt+Enter support to switch quickly between Fullscreen and Windowed mode
  - Automatically saves and restores window position/size/state
  - FPS Limiter
- - VSync
+ - Vertical Synchronization (V-Sync)
  - Optional mouse sensitivity scaling
  - Preliminary libretro shader support - https://github.com/libretro/glsl-shaders
  - ...

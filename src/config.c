@@ -31,7 +31,7 @@ void cfg_load()
 {
     cfg_init();
 
-    /* Optional settings */ 
+    /* Optional settings */
 
     GET_INT(g_config.window_rect.right, "width", 0);
     GET_INT(g_config.window_rect.bottom, "height", 0);
@@ -41,7 +41,7 @@ void cfg_load()
     GET_STRING("aspect_ratio", "", g_config.aspect_ratio, sizeof(g_config.aspect_ratio));
     GET_BOOL(g_config.boxing, "boxing", FALSE);
     GET_INT(g_config.maxfps, "maxfps", -1);
-    GET_BOOL(g_config.vsync, "vsync", FALSE);
+    GET_BOOL(g_config.vsync, "vsync", TRUE);
     GET_BOOL(g_config.adjmouse, "adjmouse", TRUE);
     GET_STRING("shader", "Shaders\\interpolation\\catmull-rom-bilinear.glsl", g_config.shader, sizeof(g_config.shader));
     GET_INT(g_config.window_rect.left, "posX", -32000);
@@ -106,7 +106,7 @@ void cfg_load()
     GET_INT(g_config.hotkeys.screenshot, "keyscreenshot", VK_SNAPSHOT);
 
     /* Game specific settings */
-    
+
     GET_BOOL(g_config.armadahack, "armadahack", FALSE);
     GET_BOOL(g_config.tshack, "tshack", FALSE);
     GET_BOOL(g_config.infantryhack, "infantryhack", FALSE);
@@ -117,7 +117,7 @@ void cfg_load()
     GET_BOOL(g_config.sirtech_hack, "sirtech_hack", FALSE);
     GET_BOOL(g_config.flightsim98_hack, "flightsim98_hack", FALSE);
     GET_BOOL(g_config.darkcolony_hack, "darkcolony_hack", FALSE);
-    
+
     GameHandlesClose = GameHandlesClose || g_config.infantryhack;
 
     if (g_config.lock_mouse_top_left)
@@ -213,9 +213,11 @@ static void cfg_create_ini()
             "; Note: Does not have an impact on the game speed, to limit your game speed use 'maxgameticks='\n"
             "maxfps=-1\n"
             "\n"
-            "; Vertical synchronization, enable if you get tearing - (Requires 'renderer=auto/opengl*/direct3d9*')\n"
-            "; Note: vsync=true can fix tearing but it will cause input lag\n"
-            "vsync=false\n"
+            "; Vertical synchronization. Requires 'renderer=auto/opengl*/direct3d9*'.\n"
+            "; Note: vsync=true can fix tearing but it may cause input lag\n"
+            "; V-Sync is enabled for most games by default even if this setting\n"
+            "; is disabled because we already disable exclusive fullscreen by default\n"
+            "vsync=true\n"
             "\n"
             "; Automatic mouse sensitivity scaling\n"
             "; Note: Only works if stretching is enabled. Sensitivity will be adjusted according to the size of the window\n"
@@ -996,7 +998,7 @@ static void cfg_create_ini()
             "; Flight Simulator 98\n"
             "[FLTSIM98]\n"
             "flightsim98_hack=true\n"
-            "\n" 
+            "\n"
             "; Fairy Tale About Father Frost, Ivan and Nastya\n"
             "[mrazik]\n"
             "guard_lines=0\n"

@@ -217,7 +217,7 @@ void TConfigForm::ApplyTranslation(TIniFile *ini)
 		RestoreDefaultsBtn->Caption = L"Restaurar la configuración predeterminada";
 		PresentationLbl->Caption = L"Presentación";
 		MaintasLbl->Caption = L"Mantener la relación de aspecto";
-		VsyncLbl->Caption = L"Activar VSync";
+		VsyncLbl->Caption = L"Activar V-Sync";
 		AdjmouseLbl->Caption = L"Ajustar sensibilidad de ratón";
 		DevmodeLbl->Caption = L"Bloquear cursor a la ventana / pantalla";
 		RendererLbl->Caption = L"Renderizador";
@@ -298,7 +298,7 @@ void TConfigForm::ApplyTranslation(TIniFile *ini)
 		RestoreDefaultsBtn->Caption = L"Standardeinstellungen wiederherstellen";
 		PresentationLbl->Caption = L"Darstellung";
 		MaintasLbl->Caption = L"Seitenverhältnis beibehalten";
-		VsyncLbl->Caption = L"VSync aktiveren";
+		VsyncLbl->Caption = L"V-Sync aktiveren";
 		AdjmouseLbl->Caption = L"Mausempfindlichkeit anpassen";
 		DevmodeLbl->Caption = L"Sperre Cursor zu Fenster / Bildschirm"; //Not 100% sure, if not a better translation exists
 		RendererLbl->Caption = L"Renderer";
@@ -381,7 +381,7 @@ void TConfigForm::ApplyTranslation(TIniFile *ini)
 		RestoreDefaultsBtn->Caption = L"Восстановить настройки по умолчанию";
 		PresentationLbl->Caption = L"Отображение";
 		MaintasLbl->Caption = L"Сохранять соотношение сторон";
-		VsyncLbl->Caption = L"Включить VSync";
+		VsyncLbl->Caption = L"Включить V-Sync";
 		AdjmouseLbl->Caption = L"Регулировка чувствительности мыши";
 		DevmodeLbl->Caption = L"Зафиксировать курсор на окне / экране";
 		RendererLbl->Caption = L"Рендер";
@@ -462,7 +462,7 @@ void TConfigForm::ApplyTranslation(TIniFile *ini)
 		RestoreDefaultsBtn->Caption = L"Visszaállítja az alapértelmezett beállításokat";
 		PresentationLbl->Caption = L"Bemutató";
 		MaintasLbl->Caption = L"Képarány megtartása";
-		VsyncLbl->Caption = L"VSync bekapcsolása";
+		VsyncLbl->Caption = L"V-Sync bekapcsolása";
 		AdjmouseLbl->Caption = L"Egérérzékenység beállítás";
 		DevmodeLbl->Caption = L"Kurzor bezárása az ablakba / képbe";
 		RendererLbl->Caption = L"Renderelő";
@@ -543,7 +543,7 @@ void TConfigForm::ApplyTranslation(TIniFile *ini)
 		RestoreDefaultsBtn->Caption = L"Restaurer les paramètres par défaut";
 		PresentationLbl->Caption = L"Présentation";
 		MaintasLbl->Caption = L"Conserver les proportions de l'image";
-		VsyncLbl->Caption = L"Activer la synchro verticale (VSync)";
+		VsyncLbl->Caption = L"Activer la synchro verticale (V-Sync)";
 		AdjmouseLbl->Caption = L"Ajuster la sensibilité souris";
 		DevmodeLbl->Caption = L"Capturer le curseur dans la fenêtre / l'écran";
 		RendererLbl->Caption = L"Moteur de rendu";
@@ -624,7 +624,7 @@ void TConfigForm::ApplyTranslation(TIniFile *ini)
 		RestoreDefaultsBtn->Caption = L"Ripristina le impostazioni predefinite";
 		PresentationLbl->Caption = L"Presentazione";
 		MaintasLbl->Caption = L"Mantieni il rapporto d'aspetto";
-		VsyncLbl->Caption = L"Abilita la sincronizzazione verticale (VSync)";
+		VsyncLbl->Caption = L"Abilita la sincronizzazione verticale (V-Sync)";
 		AdjmouseLbl->Caption = L"Regola la sensibilità del mouse";
 		DevmodeLbl->Caption = L"Cattura il cursore nella finestra / schermo";
 		RendererLbl->Caption = L"Renderer";
@@ -705,7 +705,7 @@ void TConfigForm::ApplyTranslation(TIniFile *ini)
 		RestoreDefaultsBtn->Caption = L"Khôi phục cài đặt gốc";
 		PresentationLbl->Caption = L"Chế Độ Hiển Thị";
 		MaintasLbl->Caption = L"Giữ nguyên tỉ lệ khung hình";
-		VsyncLbl->Caption = L"Bật VSync";
+		VsyncLbl->Caption = L"Bật V-Sync";
 		AdjmouseLbl->Caption = L"Điều chỉnh độ nhạy của chuột";
 		DevmodeLbl->Caption = L"Khóa con trỏ vào cửa sổ / màn hình";
 		RendererLbl->Caption = L"Trình kết xuất";
@@ -786,7 +786,7 @@ void TConfigForm::ApplyTranslation(TIniFile *ini)
 		RestoreDefaultsBtn->Caption = L"Przywróć ustawienia domyślne";
 		PresentationLbl->Caption = L"Tryb wyświetlania";
 		MaintasLbl->Caption = L"Zachowaj proporcje obrazu";
-		VsyncLbl->Caption = L"Włącz VSync";
+		VsyncLbl->Caption = L"Włącz V-Sync";
 		AdjmouseLbl->Caption = L"Dostosuj czułość myszy";
 		DevmodeLbl->Caption = L"Zablokuj kursor w oknie/na ekranie";
 		RendererLbl->Caption = L"Silnik renderowania";
@@ -924,7 +924,7 @@ void TConfigForm::ApplyTranslation(TIniFile *ini)
 		RestoreDefaultsBtn->Caption = L"Restore default settings";
 		PresentationLbl->Caption = L"Presentation";
 		MaintasLbl->Caption = L"Maintain aspect ratio";
-		VsyncLbl->Caption = L"Enable VSync";
+		VsyncLbl->Caption = L"Enable V-Sync";
 		AdjmouseLbl->Caption = L"Adjust mouse sensitivity";
 		DevmodeLbl->Caption = L"Lock cursor to window / screen";
 		RendererLbl->Caption = L"Renderer";
@@ -1103,7 +1103,7 @@ void __fastcall TConfigForm::FormCreate(TObject *Sender)
 	}
 
 	MaintasChk->State = GetBool(ini, "maintas", false) ? tssOn : tssOff;
-	VsyncChk->State = GetBool(ini, "vsync", false) ? tssOn : tssOff;
+	VsyncChk->State = GetBool(ini, "vsync", true) ? tssOn : tssOff;
 	AdjmouseChk->State = GetBool(ini, "adjmouse", true) ? tssOn : tssOff;
 	DevmodeChk->State = GetBool(ini, "devmode", false) ? tssOff : tssOn;
 
