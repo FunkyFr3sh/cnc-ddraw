@@ -7,6 +7,7 @@
 #include "ddraw.h"
 #include "dd.h"
 #include "ddsurface.h"
+#include "ddsurface_internal.h"
 #include "wndproc.h"
 #include "debug.h"
 #include "hook.h"
@@ -391,7 +392,7 @@ void dbg_draw_frame_info_start()
     if (g_ddraw.primary)
     {
         HDC primary_dc;
-        dds_GetDC(g_ddraw.primary, &primary_dc);
+        dds_GetDCInternal(g_ddraw.primary, &primary_dc);
 
         DrawText(primary_dc, debug_text, -1, &debugrc, DT_NOCLIP);
     }
@@ -702,7 +703,7 @@ void dbg_dump_dds_flip_flags(DWORD flags)
 {
 #ifdef _DEBUG_X
     if (flags & DDFLIP_WAIT) {
-        TRACE("     DDFLIP_WAIT\n");
+        TRACE_BLT("     DDFLIP_WAIT\n");
     }
     if (flags & DDFLIP_EVEN) {
         TRACE("     DDFLIP_EVEN\n");
@@ -807,7 +808,7 @@ void dbg_dump_dds_blt_flags(DWORD flags)
         TRACE("     DDBLT_ZBUFFERSRCOVERRIDE\n");
     }
     if (flags & DDBLT_WAIT) {
-        TRACE("     DDBLT_WAIT\n");
+        TRACE_BLT("     DDBLT_WAIT\n");
     }
     if (flags & DDBLT_DEPTHFILL) {
         TRACE("     DDBLT_DEPTHFILL\n");
@@ -1041,7 +1042,7 @@ void dbg_dump_dds_blt_fast_flags(DWORD flags)
         TRACE("     DDBLTFAST_DESTCOLORKEY\n");
     }
     if (flags & DDBLTFAST_WAIT) {
-        TRACE("     DDBLTFAST_WAIT\n");
+        TRACE_BLT("     DDBLTFAST_WAIT\n");
     }
     if (flags & DDBLTFAST_DONOTWAIT) {
         TRACE("     DDBLTFAST_DONOTWAIT\n");
@@ -1053,40 +1054,40 @@ void dbg_dump_dds_lock_flags(DWORD flags)
 {
 #ifdef _DEBUG_X
     if (flags & DDLOCK_SURFACEMEMORYPTR) {
-        TRACE("     DDLOCK_SURFACEMEMORYPTR\n");
+        TRACE_LOCK("     DDLOCK_SURFACEMEMORYPTR\n");
     }
     if (flags & DDLOCK_WAIT) {
-        TRACE("     DDLOCK_WAIT\n");
+        TRACE_LOCK("     DDLOCK_WAIT\n");
     }
     if (flags & DDLOCK_EVENT) {
-        TRACE("     DDLOCK_EVENT\n");
+        TRACE_LOCK("     DDLOCK_EVENT\n");
     }
     if (flags & DDLOCK_READONLY) {
-        TRACE("     DDLOCK_READONLY\n");
+        TRACE_LOCK("     DDLOCK_READONLY\n");
     }
     if (flags & DDLOCK_WRITEONLY) {
-        TRACE("     DDLOCK_WRITEONLY\n");
+        TRACE_LOCK("     DDLOCK_WRITEONLY\n");
     }
     if (flags & DDLOCK_NOSYSLOCK) {
-        TRACE("     DDLOCK_NOSYSLOCK\n");
+        TRACE_LOCK("     DDLOCK_NOSYSLOCK\n");
     }
     if (flags & DDLOCK_NOOVERWRITE) {
-        TRACE("     DDLOCK_NOOVERWRITE\n");
+        TRACE_LOCK("     DDLOCK_NOOVERWRITE\n");
     }
     if (flags & DDLOCK_DISCARDCONTENTS) {
-        TRACE("     DDLOCK_DISCARDCONTENTS\n");
+        TRACE_LOCK("     DDLOCK_DISCARDCONTENTS\n");
     }
     if (flags & DDLOCK_OKTOSWAP) {
-        TRACE("     DDLOCK_OKTOSWAP\n");
+        TRACE_LOCK("     DDLOCK_OKTOSWAP\n");
     }
     if (flags & DDLOCK_DONOTWAIT) {
-        TRACE("     DDLOCK_DONOTWAIT\n");
+        TRACE_LOCK("     DDLOCK_DONOTWAIT\n");
     }
     if (flags & DDLOCK_HASVOLUMETEXTUREBOXRECT) {
-        TRACE("     DDLOCK_HASVOLUMETEXTUREBOXRECT\n");
+        TRACE_LOCK("     DDLOCK_HASVOLUMETEXTUREBOXRECT\n");
     }
     if (flags & DDLOCK_NODIRTYUPDATE) {
-        TRACE("     DDLOCK_NODIRTYUPDATE\n");
+        TRACE_LOCK("     DDLOCK_NODIRTYUPDATE\n");
     }
 #endif
 }

@@ -678,12 +678,18 @@ DWORD WINAPI d3d9_render_main(void)
                         IDirect3DDevice9_Clear(g_d3d9.device, 0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
 
                         if (!needs_update && d3d9_update_vertices(FALSE, FALSE))
+                        {
                             needs_update = TRUE;
+                            TRACE("     child window active (D3D9 scaling disabled)\n");
+                        }
                     }
                     else if (needs_update)
                     {
                         if (d3d9_update_vertices(FALSE, TRUE))
+                        {
                             needs_update = FALSE;
+                            TRACE("     child window no longer blocks scaling (D3D9)\n");
+                        }
                     }
                 }
             }

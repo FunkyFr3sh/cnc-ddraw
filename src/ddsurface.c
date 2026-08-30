@@ -4,6 +4,7 @@
 #include "dd.h"
 #include "hook.h"
 #include "ddsurface.h"
+#include "ddsurface_internal.h"
 #include "mouse.h"
 #include "IDirectDrawSurface.h"
 #include "winapi_hooks.h"
@@ -19,6 +20,26 @@
 
 
 LONG g_dds_gdi_handles;
+
+static BOOL dds_get_desc_size(const LPDDSURFACEDESC desc, int* size)
+{
+    if (!desc || !size)
+        return FALSE;
+
+    if (desc->dwSize == sizeof(DDSURFACEDESC2))
+    {
+        *size = sizeof(DDSURFACEDESC2);
+        return TRUE;
+    }
+
+    if (desc->dwSize == sizeof(DDSURFACEDESC))
+    {
+        *size = sizeof(DDSURFACEDESC);
+        return TRUE;
+    }
+
+    return FALSE;
+}
 
 HRESULT dds_AddAttachedSurface(IDirectDrawSurfaceImpl* This, IDirectDrawSurfaceImpl* lpDDSurface)
 {
@@ -272,10 +293,10 @@ HRESULT dds_Blt(
             TRACE_EXT("     NOT_IMPLEMENTED This->bpp=%u, src_surface->bpp=%u\n", This->bpp, src_surface->bpp);
 
             HDC dst_dc;
-            dds_GetDC(This, &dst_dc);
+            dds_GetDCInternal(This, &dst_dc);
 
             HDC src_dc;
-            dds_GetDC(src_surface, &src_dc);
+            dds_GetDCInternal(src_surface, &src_dc);
 
             if (((dwFlags & DDBLT_KEYSRC) && (src_surface->flags & DDSD_CKSRCBLT)) || (dwFlags & DDBLT_KEYSRCOVERRIDE))
             {
@@ -576,10 +597,10 @@ HRESULT dds_BltFast(
             TRACE_EXT("     NOT_IMPLEMENTED This->bpp=%u, src_surface->bpp=%u\n", This->bpp, src_surface->bpp);
 
             HDC dst_dc;
-            dds_GetDC(This, &dst_dc);
+            dds_GetDCInternal(This, &dst_dc);
 
             HDC src_dc;
-            dds_GetDC(src_surface, &src_dc);
+            dds_GetDCInternal(src_surface, &src_dc);
 
             if ((dwFlags & DDBLTFAST_SRCCOLORKEY) && (src_surface->flags & DDSD_CKSRCBLT))
             {
@@ -721,58 +742,58 @@ HRESULT dds_DeleteAttachedSurface(IDirectDrawSurfaceImpl* This, DWORD dwFlags, I
 
 HRESULT dds_GetSurfaceDesc(IDirectDrawSurfaceImpl* This, LPDDSURFACEDESC lpDDSurfaceDesc)
 {
-    if (lpDDSurfaceDesc)
+    int size = 0;
+
+    if (!dds_get_desc_size(lpDDSurfaceDesc, &size))
+        return DDERR_INVALIDPARAMS;
+
+    memset(lpDDSurfaceDesc, 0, size);
+
+    lpDDSurfaceDesc->dwSize = size;
+    lpDDSurfaceDesc->dwFlags =
+        DDSD_CAPS |
+        DDSD_WIDTH |
+        DDSD_HEIGHT |
+        DDSD_PITCH |
+        DDSD_PIXELFORMAT;
+
+    lpDDSurfaceDesc->dwWidth = This->width;
+    lpDDSurfaceDesc->dwHeight = This->height;
+    lpDDSurfaceDesc->lPitch = This->pitch;
+    lpDDSurfaceDesc->lpSurface = dds_GetBuffer(This);
+    lpDDSurfaceDesc->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+    lpDDSurfaceDesc->ddpfPixelFormat.dwFlags = DDPF_RGB;
+    lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = This->bpp;
+    lpDDSurfaceDesc->ddsCaps.dwCaps = This->caps;
+
+    if (This->flags & DDSD_BACKBUFFERCOUNT)
     {
-        int size = lpDDSurfaceDesc->dwSize == sizeof(DDSURFACEDESC2) ? sizeof(DDSURFACEDESC2) : sizeof(DDSURFACEDESC);
+        lpDDSurfaceDesc->dwFlags |= DDSD_BACKBUFFERCOUNT;
+        lpDDSurfaceDesc->dwBackBufferCount = This->backbuffer_count;
+    }
 
-        memset(lpDDSurfaceDesc, 0, size);
+    if (This->flags & DDSD_CKSRCBLT)
+    {
+        lpDDSurfaceDesc->dwFlags |= DDSD_CKSRCBLT;
+        lpDDSurfaceDesc->ddckCKSrcBlt.dwColorSpaceHighValue = This->color_key.dwColorSpaceHighValue;
+        lpDDSurfaceDesc->ddckCKSrcBlt.dwColorSpaceLowValue = This->color_key.dwColorSpaceLowValue;
+    }
 
-        lpDDSurfaceDesc->dwSize = size;
-        lpDDSurfaceDesc->dwFlags = 
-            DDSD_CAPS | 
-            DDSD_WIDTH | 
-            DDSD_HEIGHT | 
-            DDSD_PITCH | 
-            DDSD_PIXELFORMAT;
-
-        lpDDSurfaceDesc->dwWidth = This->width;
-        lpDDSurfaceDesc->dwHeight = This->height;
-        lpDDSurfaceDesc->lPitch = This->pitch;
-        lpDDSurfaceDesc->lpSurface = dds_GetBuffer(This);
-        lpDDSurfaceDesc->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-        lpDDSurfaceDesc->ddpfPixelFormat.dwFlags = DDPF_RGB;
-        lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = This->bpp;
-        lpDDSurfaceDesc->ddsCaps.dwCaps = This->caps;
-
-        if (This->flags & DDSD_BACKBUFFERCOUNT)
-        {
-            lpDDSurfaceDesc->dwFlags |= DDSD_BACKBUFFERCOUNT;
-            lpDDSurfaceDesc->dwBackBufferCount = This->backbuffer_count;
-        }
-
-        if (This->flags & DDSD_CKSRCBLT)
-        {
-            lpDDSurfaceDesc->dwFlags |= DDSD_CKSRCBLT;
-            lpDDSurfaceDesc->ddckCKSrcBlt.dwColorSpaceHighValue = This->color_key.dwColorSpaceHighValue;
-            lpDDSurfaceDesc->ddckCKSrcBlt.dwColorSpaceLowValue = This->color_key.dwColorSpaceLowValue;
-        }
-
-        if (This->bpp == 8)
-        {
-            lpDDSurfaceDesc->ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8;
-        }
-        else if (This->bpp == 16)
-        {
-            lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0xF800;
-            lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0x07E0;
-            lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0x001F;
-        }
-        else if (This->bpp == 32 || This->bpp == 24)
-        {
-            lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0xFF0000;
-            lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0x00FF00;
-            lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0x0000FF;
-        }
+    if (This->bpp == 8)
+    {
+        lpDDSurfaceDesc->ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8;
+    }
+    else if (This->bpp == 16)
+    {
+        lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0xF800;
+        lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0x07E0;
+        lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0x001F;
+    }
+    else if (This->bpp == 32 || This->bpp == 24)
+    {
+        lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0xFF0000;
+        lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0x00FF00;
+        lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0x0000FF;
     }
 
     return DD_OK;
@@ -928,9 +949,9 @@ HRESULT dds_GetColorKey(IDirectDrawSurfaceImpl* This, DWORD dwFlags, LPDDCOLORKE
     return DD_OK;
 }
 
-HRESULT dds_GetDC(IDirectDrawSurfaceImpl* This, HDC FAR* lpHDC)
+static HRESULT dds_get_dc_handle(IDirectDrawSurfaceImpl* This, HDC FAR* lpHDC)
 {
-    if (!This)
+    if (!This || !lpHDC)
     {
         if (lpHDC)
             *lpHDC = NULL;
@@ -948,14 +969,50 @@ HRESULT dds_GetDC(IDirectDrawSurfaceImpl* This, HDC FAR* lpHDC)
     if (This->backbuffer || (This->caps & DDSCAPS_FLIP))
         dc = (HDC)InterlockedExchangeAdd((LONG*)&This->hdc, 0);
 
+    if (!dc)
+    {
+        *lpHDC = NULL;
+        return DDERR_CANTCREATEDC;
+    }
+
     if (This->bpp == 8 && data)
         SetDIBColorTable(dc, 0, 256, data);
 
-    if (lpHDC)
-        *lpHDC = dc;
+    *lpHDC = dc;
+
+    return DD_OK;
+}
+
+HRESULT dds_GetDCInternal(IDirectDrawSurfaceImpl* This, HDC FAR* lpHDC)
+{
+    return dds_get_dc_handle(This, lpHDC);
+}
+
+HRESULT dds_GetDC(IDirectDrawSurfaceImpl* This, HDC FAR* lpHDC)
+{
+    HRESULT ret;
+
+    if (!This || !lpHDC)
+    {
+        if (lpHDC)
+            *lpHDC = NULL;
+
+        return DDERR_INVALIDPARAMS;
+    }
+
+    if (InterlockedCompareExchange(&This->dc_acquired, TRUE, FALSE) != FALSE)
+        return DDERR_DCALREADYCREATED;
+
+    ret = dds_get_dc_handle(This, lpHDC);
+
+    if (FAILED(ret))
+    {
+        InterlockedExchange(&This->dc_acquired, FALSE);
+        return ret;
+    }
 
     if (!(This->caps & DDSCAPS_OWNDC))
-        InterlockedExchange((LONG*)&This->dc_state, SaveDC(dc));
+        InterlockedExchange((LONG*)&This->dc_state, SaveDC(*lpHDC));
 
     return DD_OK;
 }
@@ -1018,31 +1075,68 @@ HRESULT dds_Lock(
     DWORD dwFlags,
     HANDLE hEvent)
 {
+    BOOL cs_locked = FALSE;
+    HRESULT ret = DD_OK;
+    int surface_desc_size = 0;
+
+    if (!This || !lpDDSurfaceDesc)
+        return DDERR_INVALIDPARAMS;
+
+    if (!dds_get_desc_size(lpDDSurfaceDesc, &surface_desc_size))
+        return DDERR_INVALIDPARAMS;
+
+    lpDDSurfaceDesc->dwSize = surface_desc_size;
+
     if (g_config.lock_surfaces)
+    {
         EnterCriticalSection(&This->cs);
+        cs_locked = TRUE;
+    }
 
     dbg_dump_dds_lock_flags(dwFlags);
 
     util_pull_messages();
 
-    HRESULT ret = dds_GetSurfaceDesc(This, lpDDSurfaceDesc);
+    lpDDSurfaceDesc->lpSurface = NULL;
 
-    if (lpDestRect && lpDDSurfaceDesc)
+    if (InterlockedExchangeAdd(&This->dc_acquired, 0))
     {
-        if (lpDestRect->left < 0 ||
-            lpDestRect->top < 0 ||
-            lpDestRect->left > lpDestRect->right ||
-            lpDestRect->top > lpDestRect->bottom ||
-            lpDestRect->right > This->width ||
-            lpDestRect->bottom > This->height)
+        ret = DDERR_SURFACEBUSY;
+    }
+    else if (InterlockedCompareExchange(&This->lock_acquired, TRUE, FALSE) != FALSE)
+    {
+        ret = DDERR_SURFACEBUSY;
+    }
+    else
+    {
+        ret = dds_GetSurfaceDesc(This, lpDDSurfaceDesc);
+
+        if (SUCCEEDED(ret) && lpDestRect)
         {
-            lpDDSurfaceDesc->lpSurface = NULL;
-
-            return DDERR_INVALIDPARAMS;
+            if (lpDestRect->left < 0 ||
+                lpDestRect->top < 0 ||
+                lpDestRect->left > lpDestRect->right ||
+                lpDestRect->top > lpDestRect->bottom ||
+                lpDestRect->right > This->width ||
+                lpDestRect->bottom > This->height)
+            {
+                lpDDSurfaceDesc->lpSurface = NULL;
+                ret = DDERR_INVALIDPARAMS;
+            }
+            else
+            {
+                lpDDSurfaceDesc->lpSurface =
+                    (char*)dds_GetBuffer(This) + (lpDestRect->left * This->bytes_pp) + (lpDestRect->top * This->pitch);
+            }
         }
+    }
 
-        lpDDSurfaceDesc->lpSurface =
-            (char*)dds_GetBuffer(This) + (lpDestRect->left * This->bytes_pp) + (lpDestRect->top * This->pitch);
+    if (FAILED(ret))
+    {
+        InterlockedExchange(&This->lock_acquired, FALSE);
+
+        if (cs_locked)
+            LeaveCriticalSection(&This->cs);
     }
 
     return ret;
@@ -1050,6 +1144,20 @@ HRESULT dds_Lock(
 
 HRESULT dds_ReleaseDC(IDirectDrawSurfaceImpl* This, HDC hDC)
 {
+    if (!This || !hDC)
+        return DDERR_INVALIDPARAMS;
+
+    HDC dc = This->hdc;
+
+    if (This->backbuffer || (This->caps & DDSCAPS_FLIP))
+        dc = (HDC)InterlockedExchangeAdd((LONG*)&This->hdc, 0);
+
+    if (hDC != dc)
+        return DDERR_NODC;
+
+    if (InterlockedCompareExchange(&This->dc_acquired, FALSE, TRUE) != TRUE)
+        return DDERR_NODC;
+
     if ((This->caps & DDSCAPS_PRIMARYSURFACE) && g_ddraw.ref && g_ddraw.render.run)
     {
         InterlockedExchange(&g_ddraw.render.surface_updated, TRUE);
@@ -1152,30 +1260,78 @@ HRESULT dds_SetPalette(IDirectDrawSurfaceImpl* This, IDirectDrawPaletteImpl* lpD
 
 HRESULT dds_Unlock(IDirectDrawSurfaceImpl* This, LPRECT lpRect)
 {
+    if (!InterlockedExchangeAdd(&This->lock_acquired, 0))
+    {
+        return DDERR_NOTLOCKED;
+    }
+
     /* Hack for Warcraft II BNE and Diablo */
     HWND hwnd = g_ddraw.ref && g_ddraw.bnet_active ? FindWindowEx(HWND_DESKTOP, NULL, "SDlgDialog", NULL) : NULL;
 
     if (hwnd && (This->caps & DDSCAPS_PRIMARYSURFACE))
     {
         HDC primary_dc;
-        dds_GetDC(This, &primary_dc);
+        HRESULT hdc_ret = dds_GetDCInternal(This, &primary_dc);
 
         /* GdiTransparentBlt idea taken from Aqrit's war2 ddraw */
 
-        RGBQUAD quad;
-        GetDIBColorTable(primary_dc, 0xFE, 1, &quad);
-        COLORREF color = RGB(quad.rgbRed, quad.rgbGreen, quad.rgbBlue);
-        BOOL erase = FALSE;
+        if (SUCCEEDED(hdc_ret))
+        {
+            RGBQUAD quad;
+            GetDIBColorTable(primary_dc, 0xFE, 1, &quad);
+            COLORREF color = RGB(quad.rgbRed, quad.rgbGreen, quad.rgbBlue);
+            BOOL erase = FALSE;
 
-        do
+            do
+            {
+                RECT rc;
+                if (fake_GetWindowRect(hwnd, &rc))
+                {
+                    if (rc.bottom - rc.top == 479)
+                        erase = TRUE;
+
+                    HDC hdc = GetDCEx(hwnd, NULL, DCX_PARENTCLIP | DCX_CACHE);
+
+                    GdiTransparentBlt(
+                        hdc,
+                        0,
+                        0,
+                        rc.right - rc.left,
+                        rc.bottom - rc.top,
+                        primary_dc,
+                        rc.left,
+                        rc.top,
+                        rc.right - rc.left,
+                        rc.bottom - rc.top,
+                        color
+                    );
+
+                    ReleaseDC(hwnd, hdc);
+                }
+
+            } while ((hwnd = FindWindowEx(HWND_DESKTOP, hwnd, "SDlgDialog", NULL)));
+
+            if (erase)
+            {
+                blt_clear(This->surface, 0xFE, This->size);
+            }
+        }
+    }
+
+    /* Hack for Star Trek Armada */
+    hwnd = g_ddraw.ref && g_config.armadahack ? FindWindowEx(HWND_DESKTOP, NULL, "#32770", NULL) : NULL;
+
+    if (hwnd && (This->caps & DDSCAPS_PRIMARYSURFACE))
+    {
+        HDC primary_dc;
+        HRESULT hdc_ret = dds_GetDCInternal(This, &primary_dc);
+
+        if (SUCCEEDED(hdc_ret))
         {
             RECT rc;
             if (fake_GetWindowRect(hwnd, &rc))
             {
-                if (rc.bottom - rc.top == 479)
-                    erase = TRUE;
-
-                HDC hdc = GetDCEx(hwnd, NULL, DCX_PARENTCLIP | DCX_CACHE);
+                HDC hdc = GetDC(hwnd);
 
                 GdiTransparentBlt(
                     hdc,
@@ -1188,51 +1344,14 @@ HRESULT dds_Unlock(IDirectDrawSurfaceImpl* This, LPRECT lpRect)
                     rc.top,
                     rc.right - rc.left,
                     rc.bottom - rc.top,
-                    color
+                    0
                 );
 
                 ReleaseDC(hwnd, hdc);
             }
 
-        } while ((hwnd = FindWindowEx(HWND_DESKTOP, hwnd, "SDlgDialog", NULL)));
-
-        if (erase)
-        {
-            blt_clear(This->surface, 0xFE, This->size);
+            blt_clear(This->surface, 0x00, This->size);
         }
-    }
-
-    /* Hack for Star Trek Armada */
-    hwnd = g_ddraw.ref && g_config.armadahack ? FindWindowEx(HWND_DESKTOP, NULL, "#32770", NULL) : NULL;
-
-    if (hwnd && (This->caps & DDSCAPS_PRIMARYSURFACE))
-    {
-        HDC primary_dc;
-        dds_GetDC(This, &primary_dc);
-
-        RECT rc;
-        if (fake_GetWindowRect(hwnd, &rc))
-        {
-            HDC hdc = GetDC(hwnd);
-
-            GdiTransparentBlt(
-                hdc,
-                0,
-                0,
-                rc.right - rc.left,
-                rc.bottom - rc.top,
-                primary_dc,
-                rc.left,
-                rc.top,
-                rc.right - rc.left,
-                rc.bottom - rc.top,
-                0
-            );
-
-            ReleaseDC(hwnd, hdc);
-        }
-
-        blt_clear(This->surface, 0x00, This->size);
     }
 
 
@@ -1256,6 +1375,8 @@ HRESULT dds_Unlock(IDirectDrawSurfaceImpl* This, LPRECT lpRect)
             }
         }
     }
+
+    InterlockedExchange(&This->lock_acquired, FALSE);
 
     if (g_config.lock_surfaces)
         LeaveCriticalSection(&This->cs);

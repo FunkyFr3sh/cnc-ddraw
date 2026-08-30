@@ -305,6 +305,9 @@
     <ClInclude Include="inc\delay_imports.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\ddsurface_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="res.rc">

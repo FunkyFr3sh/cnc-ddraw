@@ -164,7 +164,7 @@ HRESULT __stdcall IDirectDrawSurface__Blt(
     DWORD dwFlags,
     LPDDBLTFX lpDDBltFx)
 {
-    TRACE_EXT(
+    TRACE_BLT(
         "-> %s(This=%p, lpDestRect=%p, lpDDSrcSurface=%p, lpSrcRect=%p, dwFlags=%08X, lpDDBltFx=%p) [%p]\n",
         __FUNCTION__,
         This,
@@ -177,7 +177,7 @@ HRESULT __stdcall IDirectDrawSurface__Blt(
 
     HRESULT ret = dds_Blt(This, lpDestRect, (IDirectDrawSurfaceImpl*)lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
 
-    TRACE_EXT("<- %s\n", __FUNCTION__);
+    TRACE_BLT("<- %s\n", __FUNCTION__);
     return ret;
 }
 
@@ -201,7 +201,7 @@ HRESULT __stdcall IDirectDrawSurface__BltFast(
     LPRECT lpSrcRect,
     DWORD dwFlags)
 {
-    TRACE_EXT(
+    TRACE_BLT(
         "-> %s(This=%p, dwX=%d, dwY=%d, lpDDSrcSurface=%p, lpSrcRect=%p, dwFlags=%08X) [%p]\n",
         __FUNCTION__,
         This,
@@ -214,7 +214,7 @@ HRESULT __stdcall IDirectDrawSurface__BltFast(
 
     HRESULT ret = dds_BltFast(This, dwX, dwY, (IDirectDrawSurfaceImpl*)lpDDSrcSurface, lpSrcRect, dwFlags);
 
-    TRACE_EXT("<- %s\n", __FUNCTION__);
+    TRACE_BLT("<- %s\n", __FUNCTION__);
     return ret;
 }
 
@@ -265,7 +265,7 @@ HRESULT __stdcall IDirectDrawSurface__Flip(
     LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride,
     DWORD dwFlags)
 {
-    TRACE_EXT(
+    TRACE_BLT(
         "-> %s(This=%p, lpDDSurfaceTargetOverride=%p, dwFlags=%08X) [%p]\n",
         __FUNCTION__, 
         This, 
@@ -275,7 +275,7 @@ HRESULT __stdcall IDirectDrawSurface__Flip(
 
     HRESULT ret = dds_Flip(This, (IDirectDrawSurfaceImpl*)lpDDSurfaceTargetOverride, dwFlags);
 
-    TRACE_EXT("<- %s\n", __FUNCTION__);
+    TRACE_BLT("<- %s\n", __FUNCTION__);
     return ret;
 }
 
@@ -404,7 +404,7 @@ HRESULT __stdcall IDirectDrawSurface__Lock(
     DWORD dwFlags,
     HANDLE hEvent)
 {
-    TRACE_EXT(
+    TRACE_LOCK(
         "-> %s(This=%p, lpDestRect=%p, lpDDSurfaceDesc=%p, dwFlags=%08X, hEvent=%p) [%p]\n",
         __FUNCTION__,
         This,
@@ -416,7 +416,7 @@ HRESULT __stdcall IDirectDrawSurface__Lock(
 
     HRESULT ret = dds_Lock(This, lpDestRect, (LPDDSURFACEDESC)lpDDSurfaceDesc, dwFlags, hEvent);
 
-    TRACE_EXT("<- %s\n", __FUNCTION__);
+    TRACE_LOCK("<- %s\n", __FUNCTION__);
     return ret;
 }
 
@@ -470,9 +470,9 @@ HRESULT __stdcall IDirectDrawSurface__SetPalette(IDirectDrawSurfaceImpl* This, L
 
 HRESULT __stdcall IDirectDrawSurface__Unlock(IDirectDrawSurfaceImpl* This, LPRECT lpRect)
 {
-    TRACE_EXT("-> %s(This=%p, lpRect=%p) [%p]\n", __FUNCTION__, This, lpRect, _ReturnAddress());
+    TRACE_LOCK("-> %s(This=%p, lpRect=%p) [%p]\n", __FUNCTION__, This, lpRect, _ReturnAddress());
     HRESULT ret = dds_Unlock(This, lpRect);
-    TRACE_EXT("<- %s\n", __FUNCTION__);
+    TRACE_LOCK("<- %s\n", __FUNCTION__);
     return ret;
 }
 

@@ -119,6 +119,7 @@
     <ClInclude Include="inc\wglext.h" />
     <ClInclude Include="inc\winapi_hooks.h" />
     <ClInclude Include="inc\wndproc.h" />
+    <ClInclude Include="src\ddsurface_internal.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="res.rc" />

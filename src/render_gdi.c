@@ -3,6 +3,7 @@
 #include "fps_limiter.h"
 #include "dd.h"
 #include "ddsurface.h"
+#include "ddsurface_internal.h"
 #include "opengl_utils.h"
 #include "utils.h"
 #include "wndproc.h"
@@ -15,6 +16,7 @@ DWORD WINAPI gdi_render_main(void)
 {
     static DWORD warning_end_tick = 0;
     static char warning_text[512] = { 0 };
+    BOOL child_noscale_logged = FALSE;
 
     if (g_ddraw.show_driver_warning)
     {
@@ -66,7 +68,7 @@ DWORD WINAPI gdi_render_main(void)
                 if (timeGetTime() < warning_end_tick)
                 {
                     HDC primary_dc;
-                    dds_GetDC(g_ddraw.primary, &primary_dc);
+                    dds_GetDCInternal(g_ddraw.primary, &primary_dc);
 
                     RECT rc = { 0, 0, g_ddraw.width, g_ddraw.height };
                     DrawText(primary_dc, warning_text, -1, &rc, DT_NOCLIP | DT_CENTER);
@@ -127,6 +129,12 @@ DWORD WINAPI gdi_render_main(void)
             else if (!g_ddraw.child_window_exists &&
                 (g_ddraw.render.width != g_ddraw.width || g_ddraw.render.height != g_ddraw.height))
             {
+                if (child_noscale_logged)
+                {
+                    TRACE("     child window no longer blocks scaling (GDI)\n");
+                    child_noscale_logged = FALSE;
+                }
+
                 lines_copied = real_StretchDIBits(
                     g_ddraw.render.hdc,
                     g_ddraw.render.viewport.x,
@@ -141,6 +149,15 @@ DWORD WINAPI gdi_render_main(void)
                     g_ddraw.primary->bmi,
                     DIB_RGB_COLORS,
                     SRCCOPY);
+            }
+            else if (g_ddraw.child_window_exists &&
+                (g_ddraw.render.width != g_ddraw.width || g_ddraw.render.height != g_ddraw.height))
+            {
+                if (!child_noscale_logged)
+                {
+                    TRACE("     child window active (GDI scaling disabled)\n");
+                    child_noscale_logged = TRUE;
+                }
             }
 
             if (lines_copied == 0 || lines_copied == GDI_ERROR)

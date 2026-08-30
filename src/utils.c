@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "dd.h"
 #include "ddsurface.h"
+#include "ddsurface_internal.h"
 #include "hook.h"
 #include "mouse.h"
 #include "render_d3d9.h"
@@ -960,9 +961,182 @@ BOOL CALLBACK util_enum_thread_wnd_proc(HWND hwnd, LPARAM lParam)
     return TRUE;
 }
 
+static BOOL CALLBACK util_force_child_transparent_proc(HWND hwnd, LPARAM lparam)
+{
+    HWND root = (HWND)lparam;
+
+    if (!root || hwnd == root || !IsChild(root, hwnd))
+        return TRUE;
+
+    LONG exstyle = real_GetWindowLongA(hwnd, GWL_EXSTYLE);
+
+    if (!(exstyle & WS_EX_TRANSPARENT))
+    {
+        real_SetWindowLongA(hwnd, GWL_EXSTYLE, exstyle | WS_EX_TRANSPARENT);
+        real_SetWindowPos(
+            hwnd,
+            0,
+            0,
+            0,
+            0,
+            0,
+            SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    }
+
+    return TRUE;
+}
+
+typedef struct util_dbg_child_tree_ctx
+{
+    HWND root;
+    int max_nodes;
+    int node_count;
+    DWORD dump_id;
+} util_dbg_child_tree_ctx;
+
+static int util_dbg_child_depth(HWND root, HWND hwnd)
+{
+    int depth = 0;
+    HWND current = hwnd;
+
+    while (current && current != root && depth < 64)
+    {
+        current = GetParent(current);
+        depth++;
+    }
+
+    return current == root ? depth : -1;
+}
+
+static BOOL CALLBACK util_dbg_enum_child_tree_proc(HWND hwnd, LPARAM lparam)
+{
+    util_dbg_child_tree_ctx* ctx = (util_dbg_child_tree_ctx*)lparam;
+
+    if (!ctx || !ctx->root || !IsWindow(hwnd))
+        return TRUE;
+
+    if (ctx->node_count >= ctx->max_nodes)
+        return FALSE;
+
+    int depth = util_dbg_child_depth(ctx->root, hwnd);
+    HWND parent = GetParent(hwnd);
+    RECT wr = { 0 };
+    POINT lt = { 0, 0 };
+    POINT rb = { 0, 0 };
+    char class_name[MAX_PATH] = { 0 };
+    char text[128] = { 0 };
+    char indent[48] = { 0 };
+
+    if (depth < 0)
+        depth = 0;
+
+    if (depth > 20)
+        depth = 20;
+
+    for (int i = 0; i < depth * 2 && i < (int)sizeof(indent) - 1; i++)
+        indent[i] = ' ';
+
+    GetClassNameA(hwnd, class_name, sizeof(class_name) - 1);
+    GetWindowTextA(hwnd, text, sizeof(text) - 1);
+    real_GetWindowRect(hwnd, &wr);
+
+    lt.x = wr.left;
+    lt.y = wr.top;
+    rb.x = wr.right;
+    rb.y = wr.bottom;
+
+    real_ScreenToClient(ctx->root, &lt);
+    real_ScreenToClient(ctx->root, &rb);
+
+    LONG style = real_GetWindowLongA(hwnd, GWL_STYLE);
+    LONG exstyle = real_GetWindowLongA(hwnd, GWL_EXSTYLE);
+
+    TRACE(
+        "     child tree[%lu] %snode=%d hwnd=%p parent=%p class=%s text=\"%s\" depth=%d style=%08X exstyle=%08X visible=%d enabled=%d rect_root=%d,%d %dx%d\n",
+        ctx->dump_id,
+        indent,
+        ctx->node_count + 1,
+        hwnd,
+        parent,
+        class_name[0] ? class_name : "?",
+        text,
+        depth,
+        style,
+        exstyle,
+        IsWindowVisible(hwnd),
+        IsWindowEnabled(hwnd),
+        lt.x,
+        lt.y,
+        rb.x - lt.x,
+        rb.y - lt.y);
+
+    ctx->node_count++;
+    return TRUE;
+}
+
+static void util_dbg_dump_child_tree(HWND root, const char* reason)
+{
+    static DWORD dump_seq = 0;
+
+    if (!root || !IsWindow(root))
+        return;
+
+    dump_seq++;
+
+    RECT client = { 0 };
+    RECT wr = { 0 };
+    char class_name[MAX_PATH] = { 0 };
+    char title[128] = { 0 };
+
+    real_GetClientRect(root, &client);
+    real_GetWindowRect(root, &wr);
+    GetClassNameA(root, class_name, sizeof(class_name) - 1);
+    GetWindowTextA(root, title, sizeof(title) - 1);
+
+    TRACE(
+        "     child tree[%lu] begin reason=%s root=%p class=%s title=\"%s\" client=%dx%d window=%d,%d %dx%d\n",
+        dump_seq,
+        reason ? reason : "?",
+        root,
+        class_name[0] ? class_name : "?",
+        title,
+        client.right,
+        client.bottom,
+        wr.left,
+        wr.top,
+        wr.right - wr.left,
+        wr.bottom - wr.top);
+
+    util_dbg_child_tree_ctx ctx = { 0 };
+    ctx.root = root;
+    ctx.max_nodes = 96;
+    ctx.dump_id = dump_seq;
+
+    EnumChildWindows(root, util_dbg_enum_child_tree_proc, (LPARAM)&ctx);
+
+    if (ctx.node_count >= ctx.max_nodes)
+    {
+        TRACE(
+            "     child tree[%lu] truncated max_nodes=%d\n",
+            dump_seq,
+            ctx.max_nodes);
+    }
+
+    TRACE(
+        "     child tree[%lu] end nodes=%d\n",
+        dump_seq,
+        ctx.node_count);
+}
+
 BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
 {
     IDirectDrawSurfaceImpl* this = (IDirectDrawSurfaceImpl*)lparam;
+    static HWND last_logged_hwnd = NULL;
+    static int last_logged_fixchilds = -1;
+    static int last_logged_width = -1;
+    static int last_logged_height = -1;
+    static BOOL last_logged_hide_path = FALSE;
+    static char last_logged_class[MAX_PATH] = { 0 };
 
     RECT size;
     RECT pos;
@@ -974,8 +1148,19 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
 
         LONG exstyle = real_GetWindowLongA(hwnd, GWL_EXSTYLE);
         HWND parent = GetParent(hwnd);
+        BOOL borderless_scaled_child_mode =
+            g_config.windowed &&
+            g_config.fullscreen &&
+            (g_ddraw.render.viewport.x != 0 || g_ddraw.render.viewport.y != 0);
+        BOOL force_hide_mode =
+            g_config.fixchilds == FIX_CHILDS_DETECT_PAINT &&
+            borderless_scaled_child_mode &&
+            (g_config.tshack ||
+                (g_ddraw.width > 0 &&
+                    g_ddraw.height > 0 &&
+                    (size.right > (int)g_ddraw.width || size.bottom > (int)g_ddraw.height)));
 
-#ifdef _DEBUG_X
+#if defined(_DEBUG_X) && defined(_DEBUG_CHILD_ENUM)
         LONG style = real_GetWindowLongA(hwnd, GWL_STYLE);
 
         TRACE("util_enum_child_proc class=%s, hwnd=%p, width=%u, height=%u, left=%d, top=%d, parent=%p, style=%08X\n", 
@@ -998,6 +1183,37 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
             strcmp(class_name, "MCIWndClass") == 0 ||
             strcmp(class_name, "AVI Window") == 0)
         {
+            BOOL log_changed =
+                last_logged_hwnd != hwnd ||
+                last_logged_fixchilds != g_config.fixchilds ||
+                last_logged_hide_path != TRUE ||
+                last_logged_width != size.right ||
+                last_logged_height != size.bottom ||
+                strcmp(last_logged_class, class_name) != 0;
+
+            if (log_changed)
+            {
+                TRACE(
+                    force_hide_mode ?
+                    "     child window detected (hide path forced): class=%s, hwnd=%p, size=%ux%u, fixchilds=%d\n" :
+                    "     child window detected (hide path): class=%s, hwnd=%p, size=%ux%u, fixchilds=%d\n",
+                    class_name,
+                    hwnd,
+                    size.right,
+                    size.bottom,
+                    g_config.fixchilds);
+
+                util_dbg_dump_child_tree(hwnd, force_hide_mode ? "hide-forced" : "hide");
+
+                last_logged_hwnd = hwnd;
+                last_logged_fixchilds = g_config.fixchilds;
+                last_logged_hide_path = TRUE;
+                last_logged_width = size.right;
+                last_logged_height = size.bottom;
+                strncpy(last_logged_class, class_name, sizeof(last_logged_class) - 1);
+                last_logged_class[sizeof(last_logged_class) - 1] = 0;
+            }
+
             if (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_NOSCALE)
             {
                 g_ddraw.got_child_windows = g_ddraw.child_window_exists = TRUE;
@@ -1022,12 +1238,41 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
         {
             g_ddraw.got_child_windows = g_ddraw.child_window_exists = TRUE;
 
+            BOOL log_changed =
+                last_logged_hwnd != hwnd ||
+                last_logged_fixchilds != g_config.fixchilds ||
+                last_logged_hide_path != FALSE ||
+                last_logged_width != size.right ||
+                last_logged_height != size.bottom ||
+                strcmp(last_logged_class, class_name) != 0;
+
+            if (log_changed)
+            {
+                TRACE(
+                    "     child window detected (noscale path): class=%s, hwnd=%p, size=%ux%u, fixchilds=%d\n",
+                    class_name,
+                    hwnd,
+                    size.right,
+                    size.bottom,
+                    g_config.fixchilds);
+
+                util_dbg_dump_child_tree(hwnd, "noscale");
+
+                last_logged_hwnd = hwnd;
+                last_logged_fixchilds = g_config.fixchilds;
+                last_logged_hide_path = FALSE;
+                last_logged_width = size.right;
+                last_logged_height = size.bottom;
+                strncpy(last_logged_class, class_name, sizeof(last_logged_class) - 1);
+                last_logged_class[sizeof(last_logged_class) - 1] = 0;
+            }
+
             if (g_config.fixchilds == FIX_CHILDS_DETECT_PAINT)
             {
                 HDC dst_dc = GetDC(hwnd);
                 HDC src_dc;
 
-                dds_GetDC(this, &src_dc);
+                dds_GetDCInternal(this, &src_dc);
 
                 real_MapWindowPoints(HWND_DESKTOP, g_ddraw.hwnd, (LPPOINT)&pos, 2);
 
@@ -1041,7 +1286,7 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
             return TRUE;
     }
 
-#ifdef _DEBUG_X
+#if defined(_DEBUG_X) && defined(_DEBUG_CHILD_ENUM)
     return TRUE;
 #else
     return FALSE;

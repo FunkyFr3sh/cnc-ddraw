@@ -55,6 +55,23 @@ extern PVOID g_dbg_exception_handle;
 /* log everything (slow) */
 //#define _DEBUG_X 1
 
+/* disable noisy detail groups on demand (default: enabled when _DEBUG_X is enabled) */
+//#define _DEBUG_NO_LOCK 1
+//#define _DEBUG_NO_CHILD_ENUM 1
+//#define _DEBUG_NO_BLT 1
+
+#ifdef _DEBUG_X
+#ifndef _DEBUG_NO_LOCK
+#define _DEBUG_LOCK 1
+#endif
+#ifndef _DEBUG_NO_CHILD_ENUM
+#define _DEBUG_CHILD_ENUM 1
+#endif
+#ifndef _DEBUG_NO_BLT
+#define _DEBUG_BLT 1
+#endif
+#endif
+
 
 
 #ifdef _DEBUG
@@ -69,6 +86,18 @@ extern PVOID g_dbg_exception_handle;
 #define TRACE_EXT(format, ...)
 #endif
 
+#if defined(_DEBUG_X) && defined(_DEBUG_LOCK)
+#define TRACE_LOCK(format, ...) dbg_debug_string("xDBG " format, ##__VA_ARGS__)
+#else
+#define TRACE_LOCK(format, ...)
+#endif
+
+#if defined(_DEBUG_X) && defined(_DEBUG_BLT)
+#define TRACE_BLT(format, ...) dbg_debug_string("xDBG " format, ##__VA_ARGS__)
+#else
+#define TRACE_BLT(format, ...)
+#endif
+
 #else
 
 #define TRACE(format, ...) dbg_printf(format, ##__VA_ARGS__) 
@@ -79,11 +108,25 @@ extern PVOID g_dbg_exception_handle;
 #define TRACE_EXT(format, ...)
 #endif
 
+#if defined(_DEBUG_X) && defined(_DEBUG_LOCK)
+#define TRACE_LOCK(format, ...) dbg_printf(format, ##__VA_ARGS__)
+#else
+#define TRACE_LOCK(format, ...)
+#endif
+
+#if defined(_DEBUG_X) && defined(_DEBUG_BLT)
+#define TRACE_BLT(format, ...) dbg_printf(format, ##__VA_ARGS__)
+#else
+#define TRACE_BLT(format, ...)
+#endif
+
 #endif 
 
 #else 
 #define TRACE(format, ...)
 #define TRACE_EXT(format, ...)
+#define TRACE_LOCK(format, ...)
+#define TRACE_BLT(format, ...)
 #endif
 
 #endif
