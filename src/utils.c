@@ -960,6 +960,27 @@ BOOL CALLBACK util_enum_thread_wnd_proc(HWND hwnd, LPARAM lParam)
     return TRUE;
 }
 
+/* Origin of the game surface within the render target, in window client coordinates.
+   cnc-ddraw's coordinate virtualisation assumes surface origin == client origin; that only
+   holds when the surface is drawn at 0,0. When the surface is letterboxed we must apply this
+   offset consistently to BOTH the rendered image and any native child windows the game
+   positions, otherwise the picture and the clickable region desynchronise.
+   Mirrors g_ddraw.mouse.x_adjust/y_adjust (see dd.c), including lock_mouse_top_left. */
+void util_get_surface_origin(int* x, int* y)
+{
+    int ox = 0, oy = 0;
+
+    if (!g_config.lock_mouse_top_left &&
+        (g_ddraw.render.width != g_ddraw.width || g_ddraw.render.height != g_ddraw.height))
+    {
+        ox = g_ddraw.render.viewport.x;
+        oy = g_ddraw.render.viewport.y;
+    }
+
+    if (x) *x = ox;
+    if (y) *y = oy;
+}
+
 BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
 {
     IDirectDrawSurfaceImpl* this = (IDirectDrawSurfaceImpl*)lparam;
@@ -1026,12 +1047,16 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
             {
                 HDC dst_dc = GetDC(hwnd);
                 HDC src_dc;
+                int ox, oy;
+
+                util_get_surface_origin(&ox, &oy);
 
                 dds_GetDC(this, &src_dc);
 
                 real_MapWindowPoints(HWND_DESKTOP, g_ddraw.hwnd, (LPPOINT)&pos, 2);
 
-                real_BitBlt(dst_dc, 0, 0, size.right, size.bottom, src_dc, pos.left, pos.top, SRCCOPY);
+                /* pos is in window client space; the matching surface pixels sit ox/oy before it */
+                real_BitBlt(dst_dc, 0, 0, size.right, size.bottom, src_dc, pos.left - ox, pos.top - oy, SRCCOPY);
 
                 ReleaseDC(hwnd, dst_dc);
             }

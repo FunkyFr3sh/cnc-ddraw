@@ -1120,7 +1120,11 @@ static void ogl_render()
 
                         if (!needs_update)
                         {
-                            glViewport(0, g_ddraw.render.height - g_ddraw.height, g_ddraw.width, g_ddraw.height);
+                            {
+                                int so_x, so_y;
+                                util_get_surface_origin(&so_x, &so_y);
+                                glViewport(so_x, g_ddraw.render.height - g_ddraw.height - so_y, g_ddraw.width, g_ddraw.height);
+                            }
                             needs_update = TRUE;
                         }
                     }
@@ -1285,7 +1289,11 @@ static void ogl_render()
 
             if (g_ddraw.child_window_exists)
             {
-                glViewport(0, g_ddraw.render.height - g_ddraw.height, g_ddraw.width, g_ddraw.height);
+                {
+                    int so_x, so_y;
+                    util_get_surface_origin(&so_x, &so_y);
+                    glViewport(so_x, g_ddraw.render.height - g_ddraw.height - so_y, g_ddraw.width, g_ddraw.height);
+                }
             }
             else
             {
@@ -1333,7 +1341,11 @@ static void ogl_render()
 
             if (g_ddraw.child_window_exists)
             {
-                glViewport(0, g_ddraw.render.height - g_ddraw.height, g_ddraw.width, g_ddraw.height);
+                {
+                    int so_x, so_y;
+                    util_get_surface_origin(&so_x, &so_y);
+                    glViewport(so_x, g_ddraw.render.height - g_ddraw.height - so_y, g_ddraw.width, g_ddraw.height);
+                }
             }
             else
             {
