@@ -6,6 +6,7 @@
 
 
 BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint);
+DWORD WINAPI fake_GetMessagePos(void);
 BOOL WINAPI fake_ClipCursor(const RECT* lpRect);
 int WINAPI fake_ShowCursor(BOOL bShow);
 HCURSOR WINAPI fake_SetCursor(HCURSOR hCursor);

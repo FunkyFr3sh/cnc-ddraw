@@ -1,0 +1,27 @@
+# Input regression checks
+
+Build with 32-bit MinGW-w64 GCC and run on Windows or in a disposable Wine prefix:
+
+```sh
+make -C tests
+wine tests/input.exe
+```
+
+The fixture links the production input hooks. LTO removes unrelated renderer
+functions; the test supplies only their external state and action counters.
+It creates ordinary nested Win32 windows and requires a working desktop.
+It contains no game code or assets and does not change the monitor mode.
+
+Checks cover logical child hit-testing, hidden/disabled children, mouse capture
+and signed drag coordinates, message-window filters, letterboxing, repeated
+`PM_NOREMOVE`, queued cursor position, and unchanged modes 0–4. Overlay checks cover sibling order, focus, hidden and
+nonactivating windows, and enumeration of multiple redirected siblings. Keyboard checks
+cover Alt+Enter, alternate fullscreen/maximize keys, repeats, Print Screen and
+Alt state. A failed check produces a nonzero exit status.
+
+For integration testing, build a clean release DLL as well as a debug DLL.
+Use only that DLL as the application's `ddraw.dll`, a fresh configuration and
+`fixchilds=5`. Confirm scaled child-control clicks, mouse capture, screen changes,
+Alt+Enter in both directions, sequence skipping and normal exit. Exercise GDI,
+OpenGL and Direct3D9, plus an unchanged existing game profile. Unit checks alone
+do not establish game or renderer compatibility.

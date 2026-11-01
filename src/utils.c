@@ -988,6 +988,7 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
             return TRUE;
 
         if (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+            g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_INPUT ||
             g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_NOSCALE ||
             strcmp(class_name, "Cc2EditClassTh") == 0 ||
             strcmp(class_name, "msctls_statusbar32") == 0 ||
@@ -1044,7 +1045,8 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
 #ifdef _DEBUG_X
     return TRUE;
 #else
-    return FALSE;
+    /* Every redirected sibling must be hidden, including overlays created later. */
+    return g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_INPUT;
 #endif
 }
 
