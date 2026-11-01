@@ -98,6 +98,28 @@ BOOL WINAPI fake_GetCursorPos(LPPOINT lpPoint)
     return TRUE;
 }
 
+/* Match the logical screen coordinates returned in MSG.pt and GetCursorPos.
+ * Read the queued position, not the current cursor (which may have moved). */
+DWORD WINAPI fake_GetMessagePos(void)
+{
+    DWORD pos = real_GetMessagePos();
+    if (g_config.fixchilds != FIX_CHILDS_DETECT_HIDE_INPUT ||
+        !g_ddraw.ref || !g_ddraw.hwnd || !g_ddraw.width)
+        return pos;
+
+    POINT pt = { GET_X_LPARAM(pos), GET_Y_LPARAM(pos) };
+    if (!real_ScreenToClient(g_ddraw.hwnd, &pt))
+        return pos;
+    pt.x -= g_ddraw.mouse.x_adjust;
+    pt.y -= g_ddraw.mouse.y_adjust;
+    if (g_config.adjmouse)
+    {
+        pt.x = (LONG)roundf(pt.x * g_ddraw.mouse.unscale_x);
+        pt.y = (LONG)roundf(pt.y * g_ddraw.mouse.unscale_y);
+    }
+    return MAKELONG(pt.x, pt.y);
+}
+
 BOOL WINAPI fake_ClipCursor(const RECT* lpRect)
 {
     if (g_ddraw.ref && g_ddraw.hwnd && g_ddraw.width)
@@ -628,10 +650,63 @@ HHOOK WINAPI fake_SetWindowsHookExA(int idHook, HOOKPROC lpfn, HINSTANCE hmod, D
     return result;
 }
 
+/* Hidden child windows retain logical geometry while their image is scaled.
+ * Hit-test that geometry, rather than the unscaled physical HWND under the mouse. */
+static BOOL handle_child_mouse_message(LPMSG msg, HWND filter)
+{
+    if (g_config.fixchilds != FIX_CHILDS_DETECT_HIDE_INPUT ||
+        (!g_mouse_locked && !g_config.devmode) ||
+        (msg->hwnd != g_ddraw.hwnd && !IsChild(g_ddraw.hwnd, msg->hwnd)) ||
+        msg->message < WM_MOUSEMOVE || msg->message > WM_MBUTTONDBLCLK)
+        return FALSE;
+
+    POINT pt = { GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam) };
+    real_MapWindowPoints(msg->hwnd, g_ddraw.hwnd, &pt, 1);
+    pt.x -= g_ddraw.mouse.x_adjust;
+    pt.y -= g_ddraw.mouse.y_adjust;
+    if (g_config.adjmouse)
+    {
+        pt.x = (LONG)roundf(pt.x * g_ddraw.mouse.unscale_x);
+        pt.y = (LONG)roundf(pt.y * g_ddraw.mouse.unscale_y);
+    }
+    POINT logical = pt;
+    HWND target = GetCapture();
+    if (target)
+    {
+        if (!IsChild(g_ddraw.hwnd, target))
+            return FALSE;
+        real_MapWindowPoints(g_ddraw.hwnd, target, &pt, 1);
+    }
+    else
+    {
+        target = g_ddraw.hwnd;
+        for (;;)
+        {
+            HWND child = ChildWindowFromPointEx(target, pt, CWP_SKIPINVISIBLE | CWP_SKIPDISABLED);
+            if (!child || child == target)
+                break;
+            real_MapWindowPoints(target, child, &pt, 1);
+            target = child;
+        }
+    }
+    if (target == g_ddraw.hwnd || (filter && target != filter && !IsChild(filter, target)))
+        return FALSE;
+
+    msg->hwnd = target;
+    msg->lParam = MAKELPARAM(pt.x, pt.y);
+    msg->pt = logical;
+    InterlockedExchange((LONG*)&g_ddraw.cursor.x, logical.x);
+    InterlockedExchange((LONG*)&g_ddraw.cursor.y, logical.y);
+    return TRUE;
+}
+
 void HandleMessage(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
 {
     if (lpMsg && g_ddraw.ref && g_ddraw.hwnd && g_ddraw.width)
     {
+        if (handle_child_mouse_message(lpMsg, hWnd))
+            return;
+
         if (!g_config.windowed || real_ScreenToClient(g_ddraw.hwnd, &lpMsg->pt))
         {
             int x = max(lpMsg->pt.x - g_ddraw.mouse.x_adjust, 0);
@@ -1076,6 +1151,7 @@ BOOL WINAPI fake_StretchBlt(
         (hwnd == g_ddraw.hwnd ||
             (g_config.fixchilds && IsChild(g_ddraw.hwnd, hwnd) &&
                 (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+                    g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_INPUT ||
                     strcmp(class_name, "VideoRenderer") == 0 ||
                     strcmp(class_name, "AVI Window") == 0 ||
                     strcmp(class_name, "MCIAVI") == 0 ||
@@ -1213,6 +1289,7 @@ BOOL WINAPI fake_BitBlt(
         (hwnd == g_ddraw.hwnd ||
             (g_config.fixchilds && IsChild(g_ddraw.hwnd, hwnd) &&
                 (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+                    g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_INPUT ||
                     strcmp(class_name, "VideoRenderer") == 0 ||
                     strcmp(class_name, "AVI Window") == 0 ||
                     strcmp(class_name, "MCIAVI") == 0 ||
@@ -1314,6 +1391,7 @@ int WINAPI fake_SetDIBitsToDevice(
         (hwnd == g_ddraw.hwnd ||
             (g_config.fixchilds && IsChild(g_ddraw.hwnd, hwnd) &&
                 (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+                    g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_INPUT ||
                     strcmp(class_name, "VideoRenderer") == 0 ||
                     strcmp(class_name, "AVI Window") == 0 ||
                     strcmp(class_name, "MCIAVI") == 0 ||
@@ -1409,6 +1487,7 @@ int WINAPI fake_StretchDIBits(
         (hwnd == g_ddraw.hwnd ||
             (g_config.fixchilds && IsChild(g_ddraw.hwnd, hwnd) &&
                 (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+                    g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_INPUT ||
                     strcmp(class_name, "VideoRenderer") == 0 ||
                     strcmp(class_name, "AVI Window") == 0 ||
                     strcmp(class_name, "MCIAVI") == 0 ||
@@ -2248,6 +2327,18 @@ HWND WINAPI fake_CreateWindowExA(
         hMenu,
         hInstance,
         lpParam);
+
+    /* Child creation normally appends to the sibling Z-order. In this mode,
+     * honor a topmost overlay request within the game root, not the desktop. */
+    if (hwnd && g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_INPUT &&
+        g_ddraw.ref && g_ddraw.hwnd && hWndParent == g_ddraw.hwnd &&
+        (dwStyle & WS_CHILD) && (dwExStyle & WS_EX_TOPMOST))
+    {
+        real_SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        if ((dwStyle & WS_VISIBLE) && !(dwExStyle & WS_EX_NOACTIVATE) &&
+            real_GetForegroundWindow() == g_ddraw.hwnd)
+            SetFocus(hwnd);
+    }
 
     /* Age Of Empires 2 textbox align */
     if (!dwExStyle &&

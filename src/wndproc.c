@@ -42,6 +42,9 @@ LRESULT CALLBACK fake_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
     switch (uMsg)
     {
+    case WM_HIDE_CHILD:
+        util_hide_child_window((HWND)wParam);
+        return 0;
     case WM_NULL:
     case WM_MOVING:
     case WM_NCLBUTTONDOWN:

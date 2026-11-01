@@ -11,6 +11,7 @@
 #include "mouse.h"
 #include "render_d3d9.h"
 #include "utils.h"
+#include "wndproc.h"
 #include "config.h"
 #include "versionhelpers.h"
 #include "delay_imports.h"
@@ -960,6 +961,23 @@ BOOL CALLBACK util_enum_thread_wnd_proc(HWND hwnd, LPARAM lParam)
     return TRUE;
 }
 
+/* Window style changes send synchronous messages to the owning thread. Never
+ * make them on a renderer thread while it holds the drawing critical section. */
+void util_hide_child_window(HWND hwnd)
+{
+    if (!g_ddraw.hwnd || GetParent(hwnd) != g_ddraw.hwnd)
+        return;
+
+    LONG exstyle = real_GetWindowLongA(hwnd, GWL_EXSTYLE);
+    if (!(exstyle & WS_EX_TRANSPARENT))
+    {
+        real_SetWindowLongA(hwnd, GWL_EXSTYLE, exstyle | WS_EX_TRANSPARENT);
+        real_SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+            SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+            SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+    }
+}
+
 BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
 {
     IDirectDrawSurfaceImpl* this = (IDirectDrawSurfaceImpl*)lparam;
@@ -988,6 +1006,7 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
             return TRUE;
 
         if (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+            g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_INPUT ||
             g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_NOSCALE ||
             strcmp(class_name, "Cc2EditClassTh") == 0 ||
             strcmp(class_name, "msctls_statusbar32") == 0 ||
@@ -1005,17 +1024,10 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
 
             if (!(exstyle & WS_EX_TRANSPARENT))
             {
-                real_SetWindowLongA(hwnd, GWL_EXSTYLE, exstyle | WS_EX_TRANSPARENT);
-
-                real_SetWindowPos(
-                    hwnd,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
-                );
+                if (GetCurrentThreadId() == GetWindowThreadProcessId(g_ddraw.hwnd, NULL))
+                    util_hide_child_window(hwnd);
+                else
+                    PostMessage(g_ddraw.hwnd, WM_HIDE_CHILD, (WPARAM)hwnd, 0);
             }
         }
         else if (!(exstyle & WS_EX_TRANSPARENT))
@@ -1044,7 +1056,8 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
 #ifdef _DEBUG_X
     return TRUE;
 #else
-    return FALSE;
+    /* Every redirected sibling must be hidden, including overlays created later. */
+    return g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_INPUT;
 #endif
 }
 

@@ -18,6 +18,7 @@
 BOOL g_hook_active;
 
 GETCURSORPOSPROC real_GetCursorPos = GetCursorPos;
+GETMESSAGEPOSPROC real_GetMessagePos = GetMessagePos;
 CLIPCURSORPROC real_ClipCursor = ClipCursor;
 SHOWCURSORPROC real_ShowCursor = ShowCursor;
 SETCURSORPROC real_SetCursor = SetCursor;
@@ -89,6 +90,7 @@ HOOKLIST g_hook_hooklist[] =
         "user32.dll",
         {
             { "GetCursorPos", (PROC)fake_GetCursorPos, (PROC*)&real_GetCursorPos, 0 },
+            { "GetMessagePos", (PROC)fake_GetMessagePos, (PROC*)&real_GetMessagePos, 0 },
             { "ClipCursor", (PROC)fake_ClipCursor, (PROC*)&real_ClipCursor, 0 },
             { "ShowCursor", (PROC)fake_ShowCursor, (PROC*)&real_ShowCursor, 0 },
             { "SetCursor", (PROC)fake_SetCursor, (PROC*)&real_SetCursor, 0 },

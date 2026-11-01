@@ -39,7 +39,8 @@ void keyboard_hook_exit()
 
 LRESULT CALLBACK keyboard_hook_proc(int code, WPARAM wParam, LPARAM lParam)
 {
-    if (code < 0 || !wParam)
+    /* PM_NOREMOVE may report the same keystroke repeatedly. Act only on removal. */
+    if (code != HC_ACTION || !wParam)
         return CallNextHookEx(g_keyboard_hook, code, wParam, lParam);
 
     BOOL alt_down = !!(lParam & (1 << 29));
