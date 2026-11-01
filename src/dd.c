@@ -474,6 +474,10 @@ HRESULT dd_GetCaps(LPDDCAPS_DX1 lpDDDriverCaps, LPDDCAPS_DX1 lpDDEmulCaps)
             DDCAPS_CANCLIPSTRETCHED | 
             DDCAPS_COLORKEY;
 
+        /* Some software renderers refuse to start unless the driver reports 3D support */
+        if (g_config.fake_3d_caps)
+            lpDDDriverCaps->dwCaps |= DDCAPS_3D;
+
         lpDDDriverCaps->dwCaps2 =
             DDCAPS2_NOPAGELOCKREQUIRED |
             DDCAPS2_WIDESURFACES;

@@ -94,6 +94,7 @@ void cfg_load()
     GET_BOOL(g_config.remove_menu, "remove_menu", FALSE);
     GET_INT(g_config.refresh_rate, "refresh_rate", 0);
     GET_BOOL(g_config.terminate_process, "terminate_process", FALSE);
+    GET_BOOL(g_config.fake_3d_caps, "fake_3d_caps", FALSE);
 
     /* Hotkeys */
 
@@ -339,6 +340,7 @@ static void cfg_create_ini()
             "remove_menu=false\n"
             "refresh_rate=0\n"
             "terminate_process=false\n"
+            "fake_3d_caps=false\n"
             "\n"
             "\n"
             "\n"

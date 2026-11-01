@@ -81,6 +81,7 @@ typedef struct CNCDDRAWCONFIG
     BOOL remove_menu;
     int refresh_rate;
     int terminate_process;
+    BOOL fake_3d_caps;
 
     /* Hotkeys */
 
