@@ -10,6 +10,7 @@
 #include "winapi_hooks.h"
 #include "ddsurface.h"
 #include "utils.h"
+#include "wndproc.h"
 
 void HandleMessage(LPMSG, HWND, UINT, UINT, UINT);
 
@@ -60,10 +61,26 @@ static void handle(MSG *msg, HWND filter, UINT remove)
     HandleMessage(msg, filter, 0, 0, remove);
 }
 
+static LRESULT CALLBACK test_wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
+{
+    if (msg == WM_HIDE_CHILD) {
+        util_hide_child_window((HWND)wp);
+        return 0;
+    }
+    return DefWindowProcA(hwnd,msg,wp,lp);
+}
+static DWORD WINAPI enumerate_from_renderer(void *child)
+{
+    EnterCriticalSection(&g_ddraw.cs);
+    util_enum_child_proc((HWND)child,0);
+    LeaveCriticalSection(&g_ddraw.cs);
+    return 0;
+}
+
 int main(void)
 {
     WNDCLASSA wc = {0};
-    wc.lpfnWndProc = DefWindowProcA;
+    wc.lpfnWndProc = test_wndproc;
     wc.hInstance = GetModuleHandleA(NULL);
     wc.lpszClassName = "InputRegression";
     RegisterClassA(&wc);
@@ -239,6 +256,37 @@ int main(void)
     CHECK(EnumChildWindows(root,util_enum_child_proc,0));
     CHECK(GetWindowLongA(ordinary,GWL_EXSTYLE)&WS_EX_TRANSPARENT);
 
+    /* The renderer must release its drawing lock even while the UI thread is
+     * not pumping messages. SetWindowLong from that thread deadlocks here. */
+    InitializeCriticalSection(&g_ddraw.cs);
+    for (int mode=3;mode<=5;++mode) {
+        g_config.fixchilds=mode;
+        SetWindowLongA(ordinary,GWL_EXSTYLE,WS_EX_TOOLWINDOW);
+        SetFocus(panel);
+        HANDLE worker=CreateThread(NULL,0,enumerate_from_renderer,ordinary,0,NULL);
+        CHECK(worker != NULL);
+        CHECK(WaitForSingleObject(worker,500)==WAIT_OBJECT_0);
+        MSG pending;
+        while (PeekMessageA(&pending,NULL,0,0,PM_REMOVE)) DispatchMessageA(&pending);
+        for (int tries=0;tries<20 && WaitForSingleObject(worker,0)!=WAIT_OBJECT_0;++tries) {
+            MsgWaitForMultipleObjects(1,&worker,FALSE,100,QS_ALLINPUT);
+            while (PeekMessageA(&pending,NULL,0,0,PM_REMOVE)) DispatchMessageA(&pending);
+        }
+        CHECK(WaitForSingleObject(worker,0)==WAIT_OBJECT_0);
+        if (WaitForSingleObject(worker,0)!=WAIT_OBJECT_0) return 2;
+        CHECK((GetWindowLongA(ordinary,GWL_EXSTYLE)&(WS_EX_TRANSPARENT|WS_EX_TOOLWINDOW))
+              ==(WS_EX_TRANSPARENT|WS_EX_TOOLWINDOW));
+        CHECK(GetFocus()==panel);
+        CloseHandle(worker);
+    }
+    DeleteCriticalSection(&g_ddraw.cs);
+    /* A queued request must not affect a window reparented before dispatch. */
+    SetWindowLongA(ordinary,GWL_EXSTYLE,0);
+    SetParent(ordinary,other);
+    util_hide_child_window(ordinary);
+    CHECK(!(GetWindowLongA(ordinary,GWL_EXSTYLE)&WS_EX_TRANSPARENT));
+    DestroyWindow(ordinary);
+    util_hide_child_window(ordinary);
     DestroyWindow(root); DestroyWindow(other);
     printf("%u checks, %u failures\n",checks,failures);
     return failures ? 1 : 0;

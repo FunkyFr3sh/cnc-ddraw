@@ -27,4 +27,6 @@ BOOL CALLBACK util_enum_thread_wnd_proc(HWND hwnd, LPARAM lParam);
 BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lParam);
 BOOL util_detect_low_res_screen();
 
+void util_hide_child_window(HWND hwnd);
+
 #endif

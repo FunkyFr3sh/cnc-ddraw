@@ -17,7 +17,11 @@ and signed drag coordinates, message-window filters, letterboxing, repeated
 `PM_NOREMOVE`, queued cursor position, and unchanged modes 0–4. Overlay checks cover sibling order, focus, hidden and
 nonactivating windows, and enumeration of multiple redirected siblings. Keyboard checks
 cover Alt+Enter, alternate fullscreen/maximize keys, repeats, Print Screen and
-Alt state. A failed check produces a nonzero exit status.
+Alt state. A renderer-thread check verifies that hiding a child releases the
+drawing lock without requiring the UI thread to pump messages, and that the
+deferred change preserves unrelated styles and focus. It covers modes 3–5
+and rejects a queued target reparented outside the game root.
+A failed check produces a nonzero exit status.
 
 For integration testing, build a clean release DLL as well as a debug DLL.
 Use only that DLL as the application's `ddraw.dll`, a fresh configuration and
