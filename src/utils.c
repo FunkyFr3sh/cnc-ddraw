@@ -960,9 +960,17 @@ BOOL CALLBACK util_enum_thread_wnd_proc(HWND hwnd, LPARAM lParam)
     return TRUE;
 }
 
+BOOL util_should_hide_child_windows()
+{
+    return g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+        (g_config.fixchilds == FIX_CHILDS_DETECT_PAINT &&
+            (g_ddraw.render.width != g_ddraw.width || g_ddraw.render.height != g_ddraw.height));
+}
+
 BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
 {
     IDirectDrawSurfaceImpl* this = (IDirectDrawSurfaceImpl*)lparam;
+    BOOL hide_child = util_should_hide_child_windows();
 
     RECT size;
     RECT pos;
@@ -987,7 +995,7 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
         if (parent != g_ddraw.hwnd || size.right <= 1 || size.bottom <= 1 || _strcmpi(class_name, "Edit") == 0)
             return TRUE;
 
-        if (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+        if (hide_child ||
             g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_NOSCALE ||
             strcmp(class_name, "Cc2EditClassTh") == 0 ||
             strcmp(class_name, "msctls_statusbar32") == 0 ||
@@ -1020,9 +1028,10 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
         }
         else if (!(exstyle & WS_EX_TRANSPARENT))
         {
-            g_ddraw.got_child_windows = g_ddraw.child_window_exists = TRUE;
+            if (!hide_child)
+                g_ddraw.got_child_windows = g_ddraw.child_window_exists = TRUE;
 
-            if (g_config.fixchilds == FIX_CHILDS_DETECT_PAINT)
+            if (g_config.fixchilds == FIX_CHILDS_DETECT_PAINT && !hide_child)
             {
                 HDC dst_dc = GetDC(hwnd);
                 HDC src_dc;

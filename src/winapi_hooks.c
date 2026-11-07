@@ -628,10 +628,74 @@ HHOOK WINAPI fake_SetWindowsHookExA(int idHook, HOOKPROC lpfn, HINSTANCE hmod, D
     return result;
 }
 
+/* Child controls keep their logical geometry while their pixels are presented by the renderer. */
+static BOOL map_scaled_child_mouse(LPMSG msg, UINT remove_flags)
+{
+    if (g_config.fixchilds != FIX_CHILDS_DETECT_PAINT || !util_should_hide_child_windows() ||
+        GetCurrentThreadId() != g_ddraw.gui_thread_id || !g_config.adjmouse ||
+        (msg->hwnd != g_ddraw.hwnd && !IsChild(g_ddraw.hwnd, msg->hwnd)) ||
+        msg->message < WM_MOUSEFIRST || msg->message > WM_MOUSELAST)
+        return FALSE;
+
+    POINT pt = msg->pt;
+    if (!real_ScreenToClient(g_ddraw.hwnd, &pt))
+        return FALSE;
+
+    pt.x = min(max((LONG)roundf((pt.x - g_ddraw.mouse.x_adjust) * g_ddraw.mouse.unscale_x), 0), g_ddraw.width - 1);
+    pt.y = min(max((LONG)roundf((pt.y - g_ddraw.mouse.y_adjust) * g_ddraw.mouse.unscale_y), 0), g_ddraw.height - 1);
+    POINT logical = pt;
+
+    HWND target = GetCapture();
+    if (!target || (target != g_ddraw.hwnd && !IsChild(g_ddraw.hwnd, target)))
+    {
+        target = g_ddraw.hwnd;
+        for (;;)
+        {
+            /* Transparent here means composited drawing, not an input-transparent control. */
+            HWND child = ChildWindowFromPointEx(target, pt, CWP_SKIPINVISIBLE | CWP_SKIPDISABLED);
+            if (!child || child == target)
+                break;
+            real_MapWindowPoints(target, child, &pt, 1);
+            target = child;
+        }
+    }
+
+    if (target == g_ddraw.hwnd)
+    {
+        pt = msg->pt;
+        real_ScreenToClient(g_ddraw.hwnd, &pt);
+        msg->hwnd = target;
+        if (msg->message != WM_MOUSEWHEEL)
+            msg->lParam = MAKELPARAM(pt.x, pt.y);
+        return FALSE;
+    }
+
+    pt = logical;
+    real_MapWindowPoints(g_ddraw.hwnd, target, &pt, 1);
+    msg->hwnd = target;
+    msg->pt = logical;
+    /* cnc-ddraw exposes virtual screen coordinates (game-client coordinates) to the game. */
+    msg->lParam = (msg->message == WM_MOUSEWHEEL) ?
+        MAKELPARAM(logical.x, logical.y) : MAKELPARAM(pt.x, pt.y);
+
+    if (remove_flags & PM_REMOVE)
+    {
+        InterlockedExchange((LONG*)&g_ddraw.cursor.x, logical.x);
+        InterlockedExchange((LONG*)&g_ddraw.cursor.y, logical.y);
+        if (!g_mouse_locked && !g_config.devmode &&
+            (msg->message == WM_LBUTTONUP || msg->message == WM_RBUTTONUP || msg->message == WM_MBUTTONUP))
+            mouse_lock();
+    }
+    return TRUE;
+}
+
 void HandleMessage(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
 {
     if (lpMsg && g_ddraw.ref && g_ddraw.hwnd && g_ddraw.width)
     {
+        if (map_scaled_child_mouse(lpMsg, wRemoveMsg))
+            return;
+
         if (!g_config.windowed || real_ScreenToClient(g_ddraw.hwnd, &lpMsg->pt))
         {
             int x = max(lpMsg->pt.x - g_ddraw.mouse.x_adjust, 0);
@@ -1075,7 +1139,7 @@ BOOL WINAPI fake_StretchBlt(
     if (g_ddraw.ref && g_ddraw.hwnd &&
         (hwnd == g_ddraw.hwnd ||
             (g_config.fixchilds && IsChild(g_ddraw.hwnd, hwnd) &&
-                (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+                (util_should_hide_child_windows() ||
                     strcmp(class_name, "VideoRenderer") == 0 ||
                     strcmp(class_name, "AVI Window") == 0 ||
                     strcmp(class_name, "MCIAVI") == 0 ||
@@ -1212,7 +1276,7 @@ BOOL WINAPI fake_BitBlt(
     if (g_ddraw.ref && g_ddraw.hwnd &&
         (hwnd == g_ddraw.hwnd ||
             (g_config.fixchilds && IsChild(g_ddraw.hwnd, hwnd) &&
-                (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+                (util_should_hide_child_windows() ||
                     strcmp(class_name, "VideoRenderer") == 0 ||
                     strcmp(class_name, "AVI Window") == 0 ||
                     strcmp(class_name, "MCIAVI") == 0 ||
@@ -1313,7 +1377,7 @@ int WINAPI fake_SetDIBitsToDevice(
     if (g_ddraw.ref && g_ddraw.hwnd &&
         (hwnd == g_ddraw.hwnd ||
             (g_config.fixchilds && IsChild(g_ddraw.hwnd, hwnd) &&
-                (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+                (util_should_hide_child_windows() ||
                     strcmp(class_name, "VideoRenderer") == 0 ||
                     strcmp(class_name, "AVI Window") == 0 ||
                     strcmp(class_name, "MCIAVI") == 0 ||
@@ -1408,7 +1472,7 @@ int WINAPI fake_StretchDIBits(
     if (g_ddraw.ref && g_ddraw.hwnd &&
         (hwnd == g_ddraw.hwnd ||
             (g_config.fixchilds && IsChild(g_ddraw.hwnd, hwnd) &&
-                (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+                (util_should_hide_child_windows() ||
                     strcmp(class_name, "VideoRenderer") == 0 ||
                     strcmp(class_name, "AVI Window") == 0 ||
                     strcmp(class_name, "MCIAVI") == 0 ||
