@@ -468,6 +468,99 @@ BOOL util_is_avx_supported()
     return result;
 }
 
+BOOL WINAPI DDHasYuriMenuLimiter(void)
+{
+    static int supported;
+    if (!supported)
+    {
+        supported = -1;
+        if (_strcmpi(g_config.process_file_name, "gamemd") == 0 ||
+            _strcmpi(g_config.process_file_name, "gamemd-spawn") == 0)
+        {
+            BYTE* base = (BYTE*)GetModuleHandleA(NULL);
+            PIMAGE_DOS_HEADER dos = (PIMAGE_DOS_HEADER)base;
+            PIMAGE_NT_HEADERS nt = (PIMAGE_NT_HEADERS)(base + dos->e_lfanew);
+            MEMORY_BASIC_INFORMATION mbi;
+            /* All engine globals must belong to the expected executable mapping. */
+            if ((DWORD_PTR)base == 0x400000 && nt->Signature == IMAGE_NT_SIGNATURE &&
+                nt->FileHeader.Machine == IMAGE_FILE_MACHINE_I386 &&
+                nt->FileHeader.TimeDateStamp == 0x3BDF544E &&
+                nt->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC &&
+                nt->OptionalHeader.ImageBase == 0x400000 &&
+                nt->OptionalHeader.SizeOfImage == 0x793000 &&
+                VirtualQuery((void*)0xA8ED5C, &mbi, sizeof(mbi)) &&
+                mbi.AllocationBase == base && mbi.State == MEM_COMMIT &&
+                !(mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD)) &&
+                VirtualQuery((void*)0xA8B238, &mbi, sizeof(mbi)) &&
+                mbi.AllocationBase == base && mbi.State == MEM_COMMIT &&
+                !(mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD)) &&
+                VirtualQuery((void*)0xA9FAB0, &mbi, sizeof(mbi)) &&
+                mbi.AllocationBase == base && mbi.State == MEM_COMMIT &&
+                !(mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD)) &&
+                VirtualQuery((void*)0xAC48A8, &mbi, sizeof(mbi)) &&
+                mbi.AllocationBase == base && mbi.State == MEM_COMMIT &&
+                !(mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD)))
+                supported = 1;
+        }
+    }
+    return supported == 1;
+}
+
+/* Yuri's menu loops can poll an empty queue without ever blocking on DirectDraw. */
+void util_limit_menu_idle()
+{
+    static DWORD checked_at;
+    static BOOL active;
+    static LONGLONG frequency, deadline;
+    LARGE_INTEGER now;
+
+    if (GetCurrentThreadId() != g_ddraw.gui_thread_id || !g_ddraw.ref)
+        return;
+    DWORD tick = timeGetTime();
+    if (!checked_at || tick - checked_at >= 20)
+    {
+        checked_at = tick ? tick : 1;
+        active = FALSE;
+        if (!DDHasYuriMenuLimiter())
+            return;
+
+        DWORD phase = *(volatile DWORD*)0xA9FAB0;
+        HWND dialog = *(HWND volatile*)0xAC48A8;
+        DWORD pid = 0;
+        /* Only visible menu dialogs are paced; loading and normal gameplay remain unrestricted. */
+        active = *(volatile BYTE*)0xA8ED5C && phase == 0 &&
+            *(volatile int*)0xA8ED8C > 0 && IsWindowVisible(dialog) &&
+            GetWindowThreadProcessId(dialog, &pid) == g_ddraw.gui_thread_id &&
+            pid == GetCurrentProcessId();
+    }
+
+    if (!active)
+    {
+        deadline = 0;
+        return;
+    }
+    if (!frequency)
+    {
+        LARGE_INTEGER f;
+        if (!QueryPerformanceFrequency(&f) || f.QuadPart <= 0)
+            return;
+        frequency = f.QuadPart;
+    }
+    QueryPerformanceCounter(&now);
+    LONGLONG period = frequency / 60;
+    if (!deadline || now.QuadPart - deadline > frequency / 5 || deadline - now.QuadPart > frequency / 5)
+        deadline = now.QuadPart;
+
+    while (now.QuadPart < deadline)
+    {
+        DWORD ms = (DWORD)(((deadline - now.QuadPart) * 1000 + frequency - 1) / frequency);
+        if (MsgWaitForMultipleObjects(0, NULL, FALSE, min(ms, 16), QS_ALLINPUT) != WAIT_TIMEOUT)
+            return; /* Input wakes immediately; it must not consume another frame period. */
+        QueryPerformanceCounter(&now);
+    }
+    deadline = now.QuadPart - deadline > period ? now.QuadPart + period : deadline + period;
+}
+
 void util_limit_game_ticks()
 {
     if (GetCurrentThreadId() != g_ddraw.gui_thread_id)
@@ -960,9 +1053,17 @@ BOOL CALLBACK util_enum_thread_wnd_proc(HWND hwnd, LPARAM lParam)
     return TRUE;
 }
 
+BOOL util_should_hide_child_windows()
+{
+    return g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+        (g_config.fixchilds == FIX_CHILDS_DETECT_PAINT &&
+            (g_ddraw.render.width != g_ddraw.width || g_ddraw.render.height != g_ddraw.height));
+}
+
 BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
 {
     IDirectDrawSurfaceImpl* this = (IDirectDrawSurfaceImpl*)lparam;
+    BOOL hide_child = util_should_hide_child_windows();
 
     RECT size;
     RECT pos;
@@ -987,7 +1088,7 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
         if (parent != g_ddraw.hwnd || size.right <= 1 || size.bottom <= 1 || _strcmpi(class_name, "Edit") == 0)
             return TRUE;
 
-        if (g_config.fixchilds == FIX_CHILDS_DETECT_HIDE ||
+        if (hide_child ||
             g_config.fixchilds == FIX_CHILDS_DETECT_HIDE_NOSCALE ||
             strcmp(class_name, "Cc2EditClassTh") == 0 ||
             strcmp(class_name, "msctls_statusbar32") == 0 ||
@@ -1020,9 +1121,10 @@ BOOL CALLBACK util_enum_child_proc(HWND hwnd, LPARAM lparam)
         }
         else if (!(exstyle & WS_EX_TRANSPARENT))
         {
-            g_ddraw.got_child_windows = g_ddraw.child_window_exists = TRUE;
+            if (!hide_child)
+                g_ddraw.got_child_windows = g_ddraw.child_window_exists = TRUE;
 
-            if (g_config.fixchilds == FIX_CHILDS_DETECT_PAINT)
+            if (g_config.fixchilds == FIX_CHILDS_DETECT_PAINT && !hide_child)
             {
                 HDC dst_dc = GetDC(hwnd);
                 HDC src_dc;
