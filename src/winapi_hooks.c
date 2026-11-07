@@ -867,6 +867,10 @@ BOOL WINAPI fake_PeekMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT w
     {
         HandleMessage(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
     }
+    else
+    {
+        util_limit_menu_idle();
+    }
 
     return result;
 }

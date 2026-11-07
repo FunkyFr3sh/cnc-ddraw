@@ -17,6 +17,7 @@ BOOL util_is_minimized(HWND hwnd);
 BOOL util_in_foreground();
 BOOL util_is_avx_supported();
 void util_limit_game_ticks();
+void util_limit_menu_idle();
 void util_update_bnet_pos(int newX, int newY);
 BOOL util_get_lowest_resolution(float ratio, SIZE* outRes, DWORD minWidth, DWORD minHeight, DWORD maxWidth, DWORD maxHeight);
 void util_toggle_maximize();
