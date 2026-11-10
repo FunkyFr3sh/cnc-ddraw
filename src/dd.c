@@ -1249,6 +1249,22 @@ HRESULT dd_SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwFl
 
         if (!d3d9_active || g_config.nonexclusive)
         {
+            /* 
+                Fix wayland bug: 
+                ChangeDisplaySettings fails silently - enable borderless mode in case display resolution was not changed.
+                Checked before the call because the call alone blanks the screen on Wayland; render.mode is still the current mode here.
+            */
+            if (!g_config.windowed && IsWine() && !IsSteamDeck() &&
+                (dwWidth != (DWORD)real_GetSystemMetrics(SM_CXSCREEN) ||
+                    dwHeight != (DWORD)real_GetSystemMetrics(SM_CYSCREEN)))
+            {
+                g_ddraw.render.run = FALSE;
+                g_config.windowed = TRUE;
+                g_config.fullscreen = TRUE;
+                g_config.toggle_borderless = TRUE;
+                return dd_SetDisplayMode(dwWidth, dwHeight, dwBPP, dwFlags);
+            }
+
             if (!zooming && ChangeDisplaySettings(&g_ddraw.render.mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
             {
                 g_ddraw.render.run = FALSE;
